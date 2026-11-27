@@ -29,6 +29,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
+from ..measurement.serial_text import SerialText
 from ..measurement.stats import MeasurementSummary
 
 
@@ -128,6 +129,7 @@ class CaptureResult:
     csv_row_rate: float = 0.0
     png_path: Path | None = None
     power_on: "PowerOnEvent | None" = None
+    serial: "SerialText | None" = None
 
     def to_dict(self) -> dict:
         result: dict = {"started": self.started.isoformat(timespec="seconds"),
@@ -139,6 +141,8 @@ class CaptureResult:
             result["png"] = {"path": str(self.png_path)}
         if self.power_on is not None:
             result["power_on"] = self.power_on.to_dict()
+        if self.serial is not None:
+            result["serial"] = self.serial.to_dict()
         return result | self.summary.to_dict()
 
 

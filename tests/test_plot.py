@@ -23,7 +23,8 @@
 # and the MCP record tool (REQ-MEAS-REC-005); the panels from top to bottom
 # power, current, voltage (REQ-MEAS-REC-006); the footer by default, replaced
 # and left out (REQ-MEAS-REC-007); local time in the plot, the file names
-# and the result (REQ-MEAS-REC-008).
+# and the result (REQ-MEAS-REC-008); the setpoint with the current limit
+# in the details line (REQ-MEAS-REC-010).
 
 import json
 import time
@@ -69,6 +70,13 @@ def figures(monkeypatch) -> list[Figure]:
 
 def figure_texts(figure: Figure) -> list[str]:
     return [text.get_text() for text in figure.texts]
+
+
+def test_details_name_setpoint_and_current_limit(device, tmp_path, figures):
+    device.set_voltage_setpoint(5.0)
+    device.set_current_limit(2.0)
+    device.capture(0.05, png=tmp_path / "a.png")
+    assert "   ·   setpoint 5 V @ 2 A   ·   " in figures[0].axes[0].get_title(loc="left")
 
 
 def test_panels_power_current_voltage(device, tmp_path, figures):

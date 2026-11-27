@@ -21,7 +21,8 @@
 #
 # Tools: status, measure, record (CSV and/or PNG into the output directory,
 # optionally switching the output on inside the recording, REQ-MEAS-REC-004,
-# with an optional plot title and footer, REQ-MEAS-REC-005, -007),
+# with an optional plot title and footer, REQ-MEAS-REC-005, -007, and the
+# serial console of the device under test in the plot, REQ-MEAS-REC-009),
 # set_output and power_cycle (REQ-UI-MCP-001); power_cycle always ends with
 # the output on and says so (REQ-SAFE-OUT-008). Reads are annotated read-only,
 # output switching (also record) destructive, so clients ask before switching power
@@ -59,6 +60,7 @@ from ..device.otii import OtiiDevice
 from ..errors import OtiiError, UnsupportedDeviceError
 from ..measurement.stats import MeasurementSummary
 from ..report.plot import DEFAULT_FOOTER
+from ..transport.uart import DEFAULT_BAUD, baud_constant
 from .gateway import DeviceGateway
 from .lifecycle import SafeExit
 from .monitor import EventQueue, OvercurrentMonitor
@@ -140,7 +142,8 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
     async def record(duration_s: float = 10.0, csv: bool = True, png: bool = True,
                      rate_hz: float | None = 1000.0, name: str | None = None,
                      power_on: bool = False, pre_trigger_s: float = 0.05,
-                     title: str | None = None, footer: str | None = None) -> dict:
+                     title: str | None = None, footer: str | None = None,
+                     serial_port: str | None = None, baud: int = DEFAULT_BAUD) -> dict:
         """Record main voltage [V], current [A] and power [W] for duration_s seconds
         (0.01..600) into the server's output directory: a CSV file (columns time_s, voltage_v,
         current_a, power_w; rate_hz rows per second averaged, 1..50000, null = every sample)
@@ -152,7 +155,10 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
         power_on=true powers the device under test: the main output must be off; it is
         switched on pre_trigger_s seconds (0..10, less than duration_s) into the recording and
         off at the end. The time the switch-on command was sent is marked in the plot and in
-        the CSV column output_on; power_on.command_sent_s in the result."""
+        the CSV column output_on; power_on.command_sent_s in the result.
+        serial_port (a /dev/ path) reads the serial console of the device under test at baud
+        (8N1, nothing is sent) and adds a fourth plot panel with each line at its arrival;
+        needs png."""
         if not (csv or png):
             raise RuntimeError("select csv and/or png")
         duration = clamp(duration_s, 0.01, 600.0, "duration_s")
@@ -163,7 +169,10 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
         for label, text in (("title", heading), ("footer", note)):
             if text is not None and len(text) > 200:
                 raise RuntimeError(f"{label}: at most 200 characters")
+        if serial_port is not None and not serial_port.startswith("/dev/"):
+            raise RuntimeError("serial_port: a device under /dev/")
         try:
+            baud_constant(baud)
             stem = outputs.stem(name)
         except (ValueError, OSError) as e:
             raise RuntimeError(str(e)) from None
@@ -172,7 +181,7 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
             result = d.capture(duration, csv=stem.with_suffix(".csv") if csv else None,
                                png=stem.with_suffix(".png") if png else None, row_rate=rate,
                                power_on=power_on, pre_trigger=pre, title=heading,
-                               footer=note)
+                               footer=note, serial_port=serial_port, baud=baud)
             data = result.to_dict()
             if result.power_on is not None and (warning := result.power_on.warning):
                 data["power_on"]["warning"] = warning

@@ -83,6 +83,7 @@ otii-usb record --png --title "Sensor board, boot"   # own plot title (default: 
 otii-usb record --png --footer "ACME lab"   # own note at the bottom right; --no-footer for none
 otii-usb record -t 2 --csv fast.csv --raw   # every sample (50 kHz)
 otii-usb record -t 1 --power-on          # output on 50 ms into the recording: the power-up
+otii-usb record -t 5 --power-on --png boot.png --serial /dev/ttyUSB0   # with the boot log
 otii-usb output on | off                 # switch the main output
 otii-usb power-cycle -o 2                # off for 2 s, then on
 otii-usb safe                            # all outputs off, 5 V setpoint, 500 mA limit
@@ -99,6 +100,20 @@ off again at the end, also on errors. The time the switch-on command was sent (t
 last data packet received before it) is reported as `command_sent_s`, drawn as a dashed line in
 the plot, and marked in the CSV by an extra column `output_on` (0 before, 1 from the row that
 contains it). The output then ramps up a few milliseconds later; the recording shows it.
+
+`record --serial PORT` (with `--baud RATE`, default 115200, 8N1) reads the serial console of the
+device under test during the recording and adds a fourth panel below the voltage, labelled with
+the port. Each line is marked by a faint vertical line at the arrival of its first printable
+character, with the arrival time (bold green) and the received text (black) written upwards behind
+the marker. Behind the text, a faint orange distribution shows the printable characters per second
+(right axis, topped by the busiest of 250 bins over the recording). Labels never overlap: a line
+close to the previous marker gets no marker of its own but follows that marker's label in the next
+column, with its own arrival time, as long as it ends before the next marker; lines that do not
+fit are left out, and the note at the bottom left says how many lines are shown. The port is only
+read, never written. A USB serial adapter powered by the device under test only appears after the
+switch-on; it is polled for every 5 ms and opened as soon as it appears, and the time before is
+shaded. Text sent before the port opened is lost. The result reports the line count and when the
+port was open.
 
 ## Interactive mode
 
@@ -192,7 +207,7 @@ is opened in this directory. Other MCP clients start the same command over stdio
 |---|---|
 | `status` | model, serial number, firmware, output state, voltage setpoint, current limit |
 | `measure(duration_s)` | avg/min/max/std of voltage, current and power (≤ 10 s) |
-| `record(duration_s, csv, png, rate_hz, name, power_on, pre_trigger_s, title, footer)` | CSV and/or PNG plot in the output directory (≤ 600 s); `title` replaces the plot's default title, `footer` its project note (`""` for none); `power_on` switches the output on inside the recording and off at the end (marked destructive) |
+| `record(duration_s, csv, png, rate_hz, name, power_on, pre_trigger_s, title, footer, serial_port, baud)` | CSV and/or PNG plot in the output directory (≤ 600 s); `title` replaces the plot's default title, `footer` its project note (`""` for none); `power_on` switches the output on inside the recording and off at the end (marked destructive); `serial_port` (under `/dev/`) adds the serial console panel |
 | `set_output(on)` | switch the main output (marked destructive) |
 | `power_cycle(off_s)` | off, wait, on; always ends on (marked destructive) |
 

@@ -26,6 +26,7 @@
 from .base import Transport
 from .discovery import UsbSerialPort, find_otii_port, find_otii_ports, list_usb_serial_ports
 from .serial import SerialTransport
+from .uart import DEFAULT_BAUD, UartReader
 
-__all__ = ["SerialTransport", "Transport", "UsbSerialPort", "find_otii_port", "find_otii_ports",
-           "list_usb_serial_ports"]
+__all__ = ["DEFAULT_BAUD", "SerialTransport", "Transport", "UartReader", "UsbSerialPort",
+           "find_otii_port", "find_otii_ports", "list_usb_serial_ports"]

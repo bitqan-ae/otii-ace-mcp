@@ -14,7 +14,7 @@ tested and operated (`REQ-SAFE-DEV-001`). Apache-2.0.
 
 ```
 src/otii_usb/
-  transport/      Transport ABC, SerialTransport (stdlib, flock), USB discovery
+  transport/      Transport ABC, SerialTransport (stdlib, flock), USB discovery, UartReader
   protocol/       constants, framing, packets, Session
   device/         properties, channels, support (tested devices), models, OtiiDevice
   measurement/    Recorder, sinks, Binner, CSV, statistics

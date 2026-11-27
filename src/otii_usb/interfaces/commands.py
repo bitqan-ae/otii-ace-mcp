@@ -39,6 +39,7 @@ from ..measurement.csv_log import DEFAULT_ROW_RATE
 from ..measurement.stats import MeasurementSummary
 from ..protocol.session import ProgressCallback
 from ..report.plot import DEFAULT_FOOTER
+from ..transport.uart import DEFAULT_BAUD, baud_constant
 
 AUTO = "auto"
 
@@ -118,10 +119,13 @@ def run_record(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandRe
     csv, png = _record_paths(args)
     result = dev.capture(args.time, csv=csv, png=png, row_rate=None if args.raw else args.rate,
                          progress=progress, power_on=args.power_on, pre_trigger=args.pre,
-                         title=args.title, footer=args.footer)
+                         title=args.title, footer=args.footer, serial_port=args.serial,
+                         baud=args.baud)
     fields = []
     warnings = [w for w in (_missing(result.summary),
-                            result.power_on.warning if result.power_on else None) if w]
+                            result.power_on.warning if result.power_on else None,
+                            f"serial terminal: {result.serial.error}"
+                            if result.serial and result.serial.error else None) if w]
     if (event := result.power_on) is not None:
         fields.append(("power on", f"switch-on sent at {event.command_sent * 1e3:.0f} ms, "
                                    "output OFF after"))
@@ -130,6 +134,11 @@ def run_record(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandRe
                               f"{result.csv_row_rate:g} rows/s)"))
     if result.png_path:
         fields.append(("png", str(result.png_path)))
+    if (serial := result.serial) is not None:
+        opened = (f", open from {serial.open[0][0] * 1e3:.0f} ms" if serial.open
+                  else ", never open")
+        fields.append(("serial", f"{serial.port} at {serial.baud} Bd: {len(serial.lines)} lines, "
+                                 f"{serial.bytes} bytes{opened}"))
     return CommandResult(result.to_dict(), f"recorded {args.time:g} s", tuple(fields),
                          summary=result.summary, warning="; ".join(warnings) or None)
 
@@ -173,6 +182,15 @@ def _not_negative(value: str) -> float:
     return number
 
 
+def _baud(value: str) -> int:
+    try:
+        baud = int(value)
+        baud_constant(baud)
+    except ValueError:
+        raise argparse.ArgumentTypeError("not a standard baud rate") from None
+    return baud
+
+
 def _text(value: str) -> str:
     if not (text := value.strip()):
         raise argparse.ArgumentTypeError("must not be empty")
@@ -210,6 +228,12 @@ def _configure_record(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--pre", type=_not_negative, default=DEFAULT_PRE_TRIGGER,
                         metavar="SECONDS", help="with --power-on: time recorded before switching "
                                                 f"on (default {DEFAULT_PRE_TRIGGER:g} s)")
+    parser.add_argument("--serial", metavar="PORT",
+                        help="serial console of the device under test (e.g. /dev/ttyUSB0), "
+                             "read only: its lines are shown at their arrival in a fourth "
+                             "plot panel")
+    parser.add_argument("--baud", type=_baud, default=DEFAULT_BAUD, metavar="RATE",
+                        help=f"with --serial: baud rate, 8N1 (default {DEFAULT_BAUD})")
 
 
 def _configure_output(parser: argparse.ArgumentParser) -> None:
@@ -251,7 +275,11 @@ COMMANDS: tuple[Command, ...] = (
             "recording. Without --csv/--png both are written with timestamped names. "
             "--power-on switches the main output on --pre seconds into the recording, so the "
             "power-up is recorded, and off at the end (also on errors); the time the command "
-            "was sent is marked in the plot and in the CSV column output_on.",
+            "was sent is marked in the plot and in the CSV column output_on. --serial reads the "
+            "serial console of the device under test at --baud (8N1, nothing is sent to it) "
+            "and adds a fourth plot panel: each line marked at the arrival of its first "
+            "printable character, with its text written upwards behind the marker; lines that "
+            "would overlap the previous one are left out.",
             run_record, examples=(
                 ("record", "10 s to otii-<timestamp>.csv and .png"),
                 ("record -t 60 --csv run.csv", "only a CSV, 60 s, 1000 rows/s"),
@@ -263,6 +291,10 @@ COMMANDS: tuple[Command, ...] = (
                 ("record --csv slow.csv --rate 10", "10 averaged rows per second"),
                 ("record -t 1 --power-on --png boot.png", "power up the board and record its boot"),
                 ("record -t 0.2 --power-on --pre 0.01 --csv --raw", "first 190 ms, every sample"),
+                ("record -t 10 --power-on --png boot.png --serial /dev/ttyUSB0",
+                 "power-up with the boot log at 115200 Bd"),
+                ("record -t 5 --png --serial /dev/ttyACM1 --baud 921600",
+                 "console at 921600 Bd"),
             ), configure=_configure_record, duration=lambda a: a.time,
             progress_label="recording"),
     Command("output", "switch the main output on or off",
@@ -306,14 +338,15 @@ def add_command_parsers(subparsers: argparse._SubParsersAction, *,
 
 
 def completion_words(parser: argparse.ArgumentParser) -> list[tuple[str, bool]]:
-    """Options and fixed choices of a command, each with whether it takes a file name.
+    """Options and fixed choices of a command, each with whether it takes a file or port name.
 
     argparse has no public API to list its options; this is the one place that reads
     ``_actions``.
     """
     words: list[tuple[str, bool]] = []
     for action in parser._actions:
-        words += [(option, action.metavar == "FILE") for option in action.option_strings]
+        words += [(option, action.metavar in ("FILE", "PORT"))
+                  for option in action.option_strings]
         if not action.option_strings and action.choices:
             words += [(choice, False) for choice in action.choices]
     return words

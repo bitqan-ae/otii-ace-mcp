@@ -35,6 +35,11 @@
 # the output off, switches it on pre_trigger seconds into the recording,
 # marks when the command was sent in the CSV and the plot, and switches the
 # output off at the end and on every error (REQ-MEAS-REC-004).
+# capture(serial_port=...) listens on the serial console of the device under
+# test during the recording, read-only, and shows its lines in a fourth plot
+# panel (REQ-MEAS-REC-009); a port that exists is opened before the
+# recording starts, so a busy one fails before the output is switched, and
+# one that appears only with the power is waited for.
 
 """High-level device facade."""
 import logging
@@ -54,10 +59,12 @@ from ..errors import OtiiError, ProtocolError
 
 from ..measurement.csv_log import DEFAULT_ROW_RATE, ColumnSink, CsvSink
 from ..measurement.recorder import Recorder, StreamResult, Trigger
+from ..measurement.serial_text import HostClock, SerialText
 from ..measurement.sinks import SampleSink, TeeSink
 from ..report.plot import DEFAULT_FOOTER, PlotInfo, PlotSink, render_png
 from ..measurement.recording import Recording
 from ..measurement.stats import MeasurementSummary
+from ..transport.uart import DEFAULT_BAUD, UartReader
 from ..protocol.constants import ChannelId, Command
 from ..protocol.packets import Alert
 from ..protocol.session import HelloInfo, ProgressCallback, Session
@@ -291,7 +298,8 @@ class OtiiDevice:
                 progress: ProgressCallback | None = None, power_on: bool = False,
                 pre_trigger: float = DEFAULT_PRE_TRIGGER,
                 title: str | None = None,
-                footer: str | None = DEFAULT_FOOTER) -> CaptureResult:
+                footer: str | None = DEFAULT_FOOTER, serial_port: str | None = None,
+                baud: int = DEFAULT_BAUD) -> CaptureResult:
         """Record voltage, current and power to a CSV file and/or a PNG plot.
 
         Both outputs are fed from the same recording. ``row_rate`` CSV rows per second
@@ -305,11 +313,17 @@ class OtiiDevice:
 
         ``title`` replaces the plot's default title (model and serial number); ``footer``
         the grey project note at its bottom right, ``None`` for none.
+
+        ``serial_port``: the serial console of the device under test, read (never written)
+        at ``baud`` during the recording; each line is shown at its arrival in a fourth plot
+        panel, so it needs ``png``.
         """
         if duration <= 0:
             raise ValueError("duration must be positive")
         if csv is None and png is None:
             raise ValueError("select at least one output (csv and/or png)")
+        if serial_port is not None and png is None:
+            raise ValueError("the serial text is shown in the PNG plot; select png")
         if power_on and not 0 <= pre_trigger < duration:
             raise ValueError("pre-trigger time must be at least 0 and shorter than the duration")
         if power_on and self.output_enabled:
@@ -318,7 +332,8 @@ class OtiiDevice:
         plot_info = PlotInfo(model=self.model, serial_number=self.get(Properties.SERIAL_NUMBER),
                              firmware=self.firmware_version, started=datetime.now().astimezone(),
                              duration=duration, sample_rate=0, bin_rate=0.0,
-                             voltage_setpoint=self.voltage_setpoint, title=title,
+                             voltage_setpoint=self.voltage_setpoint,
+                             current_limit=self.current_limit, title=title,
                              footer=footer)
         sent: list[float] = []          # when the switch-on command was sent
 
@@ -338,14 +353,26 @@ class OtiiDevice:
             plot_sink = PlotSink(duration) if png is not None else None
             if plot_sink is not None:
                 sinks.append(plot_sink)
-            tee = TeeSink(*sinks)
+            uart = clock = None
+            if serial_port is not None:
+                uart = files.enter_context(UartReader(serial_port, baud))
+                clock = HostClock()
+            # the clock first: its time is taken closest to the packet's arrival
+            tee = TeeSink(*(() if clock is None else (clock,)), *sinks)
             try:
+                if uart is not None:
+                    uart.start()
                 result = Recorder(self._session, self.channels).stream(
                     MAIN_CHANNELS, duration, tee, progress, trigger)
             except BaseException:
                 if power_on:
                     self._switch_off_best_effort()
                 raise
+            serial = None
+            if uart is not None and clock is not None:
+                received = uart.stop()
+                serial = SerialText.of(received, uart.char_time, clock.to_recording, duration,
+                                       port=uart.path, baud=baud)
         event = None
         if power_on:
             try:
@@ -360,13 +387,13 @@ class OtiiDevice:
         if plot_sink is not None and png is not None:
             png_path = render_png(png, plot_sink.bins(), replace(
                 plot_info, sample_rate=plot_sink.sample_rate, bin_rate=plot_sink.bin_rate,
-                output_on=event.command_sent if event else None), summary)
+                output_on=event.command_sent if event else None), summary, serial)
         return CaptureResult(started=plot_info.started, duration=duration,
                              sample_rate=sinks[0].sample_rate, summary=summary,
                              csv_path=Path(csv).resolve() if csv is not None else None,
                              csv_rows=csv_sink.rows if csv_sink else 0,
                              csv_row_rate=csv_sink.row_rate if csv_sink else 0.0,
-                             png_path=png_path, power_on=event)
+                             png_path=png_path, power_on=event, serial=serial)
 
     def _switch_on(self) -> None:
         """Output on with the write first, then the read-back (REQ-SAFE-DEV-002)."""

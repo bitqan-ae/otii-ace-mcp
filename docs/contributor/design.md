@@ -55,10 +55,10 @@ Basis of a design constraint:
 
 | Package | Holds |
 |---|---|
-| `transport/` | the byte pipe: `Transport` ABC, `SerialTransport` (raw CDC-ACM, exclusive `flock`), USB discovery via sysfs |
+| `transport/` | the byte pipe: `Transport` ABC, `SerialTransport` (raw CDC-ACM, exclusive `flock`), USB discovery via sysfs, `UartReader` (the receive-only serial console of the device under test) |
 | `protocol/` | the wire format without device semantics: frames, typed packets, `Session` (transactions, listeners, keepalive, cancellation, progress) |
 | `device/` | the device model: typed property specifications and codecs, channel table, tested-device table, `OtiiDevice` |
-| `measurement/` | `Recorder`, sinks (array, statistics, CSV, tee), `Binner` |
+| `measurement/` | `Recorder`, sinks (array, statistics, CSV, tee, host clock), `Binner`, serial console lines |
 | `report/` | `PlotSink` and PNG rendering with matplotlib |
 | `simulator/` | `SimulatedOtii`, a `Transport` that emulates the device |
 | `interfaces/` | command catalogue, console and progress bars, `DeviceGateway`, lifecycle and signals, overcurrent monitor, CLI, interactive shell, MCP server |
@@ -71,8 +71,17 @@ recorder's router, which decodes each block into a numpy array and gives it to a
 Otii ──1 ms packets──▶ Session ──DataPacket──▶ Recorder ──numpy arrays──▶ SampleSink
                                                                             ├─ ArraySink → Recording
                                                                             ├─ CsvSink   → Binner → CSV rows
-                                                                            └─ PlotSink  → Binner → PNG
+                                                                            ├─ PlotSink  → Binner → PNG
+                                                                            └─ HostClock → host time → recording time
+Device under test ──serial console──▶ UartReader (thread, host time per read) ──▶ lines ──▶ PNG
 ```
+
+The serial console's lines reach the plot on the recording's time axis through `HostClock`: a
+data packet cannot arrive before it ends on the device's time axis, so the smallest difference
+between its arrival on the host and its end is the transport latency at its best, and host time
+minus that offset is recording time. Within one read, bytes are dated back one character time
+each from the read. Both sides keep their USB latency (about a millisecond), and the host and the
+device clocks may drift apart by some parts per million over a long recording.
 
 ![Safety lifecycle](../images/safety-lifecycle.svg)
 
@@ -141,6 +150,8 @@ Otii ──1 ms packets──▶ Session ──DataPacket──▶ Recorder ─�
 | `REQ-MEAS-REC-006` | The PNG plot shall show power on top, then current, then voltage. | Stated | Implemented |
 | `REQ-MEAS-REC-007` | The PNG plot shall carry a grey note at the bottom right, by default `created with github.com/bitqan-ae/otii-ace-mcp`; it shall be replaceable by plain text or left out: `record --footer` and `--no-footer` on the command line and in the shell, `footer` in the MCP `record` tool. | Stated | Implemented |
 | `REQ-MEAS-REC-008` | Dates and times of a recording - in the plot, in the default file names and in the result's `started` - shall be in the host's local time zone; the plot and `started` shall name the zone. | Stated | Implemented |
+| `REQ-MEAS-REC-009` | A recording shall optionally read the serial console of the device under test at a selectable baud rate (8N1, default 115200), read-only so that nothing is sent to it, and show it in a fourth PNG panel at the bottom, labelled with the selected port: each line marked with a faint solid vertical line at the arrival of its first printable character on the recording's time axis, its arrival time in bold green and then the received text in black written upwards behind the marker in a small font, cut to the panel's height; behind them a faint orange distribution of the printable characters per second, on a right axis whose top is the busiest bin. The first printable character after the port opened starts a line; after that only a newline does. Labels shall never overlap: a line gets a marker once the time axis has moved one text line height past the previous marker; the lines in between follow that marker's label in further columns, each with its arrival time, until the next column would reach the next marker, and the rest are left out. A port that appears only once the device under test is powered shall be waited for (polled every 5 ms) and followed through disconnects; the times it was not open are shaded. The command line and the shell shall offer it as `record --serial PORT --baud RATE`, the MCP `record` tool as `serial_port` and `baud`. | Stated | Verified |
+| `REQ-MEAS-REC-010` | The PNG plot's details line below the title shall give the voltage setpoint with the current limit, as `setpoint 5 V @ 2 A`, read from the device when the recording starts. | Stated | Implemented |
 
 ### PROT-LINK: Protocol handling
 
@@ -175,6 +186,7 @@ How each *Verified* requirement was shown on a real Otii Ace Pro (`DC-HW-ACE-001
 | `REQ-MEAS-REC-002` | 2026-11-27 | the same run: plot titled with model and serial number, reviewed |
 | `REQ-MEAS-REC-003` | 2026-11-27 | the same run (both); one output each in `test_record_tool` |
 | `REQ-MEAS-REC-004` | 2026-11-27 | `test_power_on_recording` with a device under test at 5 V / 1 A: command marked at 50 ms, output off before it, no missing packets, output off afterwards; plot reviewed; [`tests/test_power_on.py`](../../tests/test_power_on.py), [`tests/hardware/test_power_on.py`](../../tests/hardware/test_power_on.py) |
+| `REQ-MEAS-REC-009` | 2026-11-27 | `otii-usb record -t 2 --power-on --pre 0 --raw --png --serial /dev/ttyUSB0` (and `-t 5`) with a Zynq-7000 board at 5 V / 2 A whose USB serial adapter is powered by the board: the port appeared and was opened 459 ms after the switch-on, 3 boot lines marked at their arrival, lines that would overlap left out in the 5 s run, plot reviewed; output off afterwards; [`tests/test_serial.py`](../../tests/test_serial.py) |
 | `REQ-PROT-LINK-001` | 2026-11-27 | every hardware session; `TestFraming` |
 | `REQ-PROT-LINK-002` | 2026-11-27 | captured session in [protocol.md](protocol.md#13-a-complete-session); `TestSession` |
 

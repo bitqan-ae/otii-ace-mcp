@@ -18,10 +18,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# The device reports one 16-byte record per channel: id, flags (sample
-# format float32 or int32, whether to apply the scale, channel kind),
-# sample rate and scale. ChannelInfo decodes a block of raw samples into a
-# float64 numpy array in SI units with np.frombuffer (SW-006, SW-007);
+# The device reports one 16-byte record per channel: id, flags (sample format
+# float32 or int32, whether to apply the scale, channel kind), sample rate and
+# scale. ChannelInfo decodes a block of raw samples into a float64 numpy array
+# in SI units with np.frombuffer (DC-ARCH-PKG-004, DC-ARCH-PKG-005);
 # encode_samples is its inverse for the simulator.
 
 """Channel capabilities as reported by the ``chinfo`` property, and sample decoding."""

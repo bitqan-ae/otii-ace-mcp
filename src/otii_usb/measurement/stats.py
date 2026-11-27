@@ -32,8 +32,10 @@ from numpy.typing import NDArray
 
 from ..protocol.constants import CHANNEL_UNITS, ChannelId, channel_name
 
-_LABELS: dict[int, str] = {ChannelId.MV: "voltage_v", ChannelId.MC: "current_a",
-                           ChannelId.MP: "power_w"}
+MAIN_COLUMNS: tuple[tuple[int, str], ...] = (
+    (ChannelId.MV, "voltage_v"), (ChannelId.MC, "current_a"), (ChannelId.MP, "power_w"))
+"""The main channels with the names used for them in CSV headers and JSON results."""
+_LABELS: dict[int, str] = dict(MAIN_COLUMNS)
 
 
 @dataclass(frozen=True, slots=True)

@@ -20,9 +20,9 @@
 #
 # A device is identified by the type in the hello reply ("Ace"), the
 # protocol version and the firmware version, all read-only. Only entries of
-# SUPPORTED_DEVICES are operated; the only tested device today is the Otii
-# Ace Pro with firmware 3.2.x. Anything else raises UnsupportedDeviceError
-# before a single write (SAF-008).
+# SUPPORTED_DEVICES are operated, matched exactly: the Otii Ace Pro with
+# firmware 3.2.5 (DC-HW-ACE-001). Anything else raises UnsupportedDeviceError
+# before a single write (REQ-SAFE-DEV-001).
 
 """Which devices this driver operates."""
 from dataclasses import dataclass
@@ -35,16 +35,16 @@ class SupportedDevice:
     model: str
     device_type: str
     protocol_versions: frozenset[int]
-    firmware_prefixes: tuple[str, ...]
+    firmware_versions: frozenset[str]
 
     def matches(self, device_type: str, protocol_version: int, firmware: str) -> bool:
         return (device_type == self.device_type and protocol_version in self.protocol_versions
-                and firmware.startswith(self.firmware_prefixes))
+                and firmware in self.firmware_versions)
 
 
 SUPPORTED_DEVICES: tuple[SupportedDevice, ...] = (
     SupportedDevice(model="Otii Ace Pro", device_type="Ace", protocol_versions=frozenset({3}),
-                    firmware_prefixes=("3.2.",)),
+                    firmware_versions=frozenset({"3.2.5"})),
 )
 
 
@@ -53,8 +53,8 @@ def identify(device_type: str, protocol_version: int, firmware: str) -> Supporte
     for entry in SUPPORTED_DEVICES:
         if entry.matches(device_type, protocol_version, firmware):
             return entry
-    tested = ", ".join(f"{d.model} (type {d.device_type!r}, firmware {'/'.join(d.firmware_prefixes)}x)"
-                       for d in SUPPORTED_DEVICES)
+    tested = ", ".join(f"{d.model} (type {d.device_type!r}, firmware "
+                       f"{'/'.join(sorted(d.firmware_versions))})" for d in SUPPORTED_DEVICES)
     raise UnsupportedDeviceError(
         f"unsupported device: type {device_type!r}, protocol {protocol_version}, firmware "
         f"{firmware!r}; tested devices: {tested}")

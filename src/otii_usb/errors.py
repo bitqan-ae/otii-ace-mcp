@@ -18,14 +18,19 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Everything raised on purpose derives from OtiiError, so callers can catch
-# one type. Transport problems (port missing, busy, unplugged) are
-# TransportError; protocol violations and timeouts are ProtocolError;
-# a non-zero answer from the device is CommandError; a device that is not
-# on the tested list is UnsupportedDeviceError (SAF-008); a blocking call
-# aborted by the cancel event is OperationCancelledError (SAF-004).
+# Device, transport and protocol errors derive from OtiiError, so callers can
+# catch one type; invalid arguments raise ValueError.
+#   - TransportError: the port is missing, busy or unplugged;
+#   - ProtocolError: protocol violations and timeouts;
+#   - CommandError: a non-zero answer from the device;
+#   - UnsupportedDeviceError: a device that is not on the tested list
+#     (REQ-SAFE-DEV-001);
+#   - ReadOnlyPropertyError: a write to a property this driver does not write
+#     (REQ-SAFE-DEV-003);
+#   - OperationCancelledError: a blocking call aborted by the cancel event
+#     (REQ-SAFE-OUT-004).
 
-"""Exception hierarchy. Every error raised by this package derives from :class:`OtiiError`."""
+"""Exception hierarchy: device, transport and protocol errors derive from :class:`OtiiError`."""
 
 
 class OtiiError(Exception):
@@ -42,6 +47,10 @@ class DeviceNotFoundError(TransportError):
 
 class UnsupportedDeviceError(OtiiError):
     """The attached device is not on the list of tested devices; it is not operated."""
+
+
+class ReadOnlyPropertyError(OtiiError, PermissionError):
+    """A property that this driver does not write was asked to be set (REQ-SAFE-DEV-003)."""
 
 
 class PortBusyError(TransportError):

@@ -19,17 +19,19 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # open() finds and opens the USB device, connect() takes any Transport;
-# both run the handshake and refuse unsupported devices (SAF-008).
+# both run the handshake and refuse unsupported devices (REQ-SAFE-DEV-001).
 #
 # Control: set_output, set_voltage_setpoint and set_current_limit read every
-# write back (SAF-005); apply_safe_defaults switches the main and expansion
-# outputs off and sets the voltage and current limit (SAF-001); shutdown
-# also stops a recording left running (SAF-013); power_cycle always ends
-# with the output on (SAF-010).
+# write back (REQ-SAFE-DEV-002) and check the limits (REQ-SAFE-DEV-004).
+# apply_safe_defaults switches the main and expansion outputs off and sets
+# the voltage and current limit (REQ-SAFE-OUT-001). shutdown switches the
+# main output off first, then stops a recording left running
+# (REQ-SAFE-DEV-005) and applies the defaults. power_cycle always ends with
+# the output on (REQ-SAFE-OUT-008).
 #
 # Measurement: record() returns numpy arrays, measure() statistics,
 # stream() feeds any SampleSink, capture() writes a CSV file and/or a PNG
-# plot from one recording.
+# plot from one recording (REQ-MEAS-REC-003).
 
 """High-level device facade."""
 import logging
@@ -45,7 +47,7 @@ from functools import cached_property
 from types import TracebackType
 from typing import Self
 
-from ..errors import CommandError, OtiiError, ProtocolError
+from ..errors import OtiiError, ProtocolError
 
 from ..measurement.csv_log import DEFAULT_ROW_RATE, ColumnSink, CsvSink
 from ..measurement.recorder import Recorder, StreamResult
@@ -54,6 +56,7 @@ from ..report.plot import PlotInfo, PlotSink, render_png
 from ..measurement.recording import Recording
 from ..measurement.stats import MeasurementSummary
 from ..protocol.constants import ChannelId, Command
+from ..protocol.packets import Alert
 from ..protocol.session import HelloInfo, ProgressCallback, Session
 from ..transport.base import Transport
 from ..transport.discovery import find_otii_port
@@ -121,6 +124,11 @@ class OtiiDevice:
     def hello(self) -> HelloInfo:
         return self._hello
 
+    @property
+    def alerts(self) -> list[Alert]:
+        """Alert packets the device sent during this connection."""
+        return list(self._session.alerts)
+
     def get[T](self, spec: PropertySpec[T]) -> T:
         return self._properties.get(spec)
 
@@ -165,10 +173,12 @@ class OtiiDevice:
     def info(self) -> DeviceInfo:
         return DeviceInfo(model=self.model, name=self.name, device_type=self._hello.device_type,
                           serial_number=self.get(Properties.SERIAL_NUMBER),
+                          board_serial=self.get(Properties.BOARD_SERIAL),
                           hardware_revision=self.get(Properties.HARDWARE_VERSION),
                           firmware=self.firmware_version,
                           bootloader=self.get(Properties.BOOT_VERSION), port=self.port,
                           protocol_version=self._hello.protocol_version,
+                          max_payload=self._hello.max_payload,
                           output_enabled=self.output_enabled,
                           voltage_setpoint=self.voltage_setpoint,
                           current_limit=self.current_limit)
@@ -208,27 +218,37 @@ class OtiiDevice:
         self.set_output(False)
         if defaults.expansion_output_off:
             self.set(Properties.EXPANSION_OUTPUT_VOLTAGE, 0.0)
-        expansion = self.get(Properties.EXPANSION_OUTPUT_VOLTAGE)
+            expansion = self._verify(Properties.EXPANSION_OUTPUT_VOLTAGE, 0.0, tolerance=1e-3)
+        else:
+            expansion = self.get(Properties.EXPANSION_OUTPUT_VOLTAGE)
         voltage = self.set_voltage_setpoint(defaults.voltage)
         limit = self.set_current_limit(defaults.current_limit)
         return SafeStateReport(main_output=self.output_enabled, expansion_output_voltage=expansion,
                                voltage_setpoint=voltage, current_limit=limit)
 
     def stop_recording(self) -> None:
-        """Best effort: stop any recording left running (e.g. by an interrupted program)."""
+        """Best effort: stop a recording left running (e.g. by an interrupted program).
+
+        Never raises a device error: failures are logged, so the safe state can still follow.
+        """
         try:
             self._session.request(Command.RECORD_STOP)
-        except CommandError as e:
-            log.debug("record stop: %s", e)
-        for channel in self.channels:
-            if self.channels[channel].is_analog:
-                try:
+            for channel, info in self.channels.items():
+                if info.is_analog:
                     self._session.request(Command.SET_CHANNEL, struct.pack("<II", channel, 0))
-                except CommandError as e:
-                    log.debug("disable channel %d: %s", channel, e)
+        except OtiiError as e:
+            log.warning("could not stop a recording: %s", e)
 
     def shutdown(self, defaults: SafeDefaults = SafeDefaults()) -> SafeStateReport:
-        """Bring the device into the safe state for leaving it unattended."""
+        """Bring the device into the safe state for leaving it unattended.
+
+        The main output goes off first, before anything that could fail; then a leftover
+        recording is stopped and the safe defaults are applied and verified.
+        """
+        try:
+            self.set(Properties.MAIN_OUTPUT, False)
+        except OtiiError as e:
+            log.warning("switching the main output off failed, retrying: %s", e)
         self.stop_recording()
         return self.apply_safe_defaults(defaults)
 
@@ -304,4 +324,4 @@ class OtiiDevice:
 
 
 
-__all__ = ["MAIN_CHANNELS", "OtiiDevice", "OtiiError"]
+__all__ = ["MAIN_CHANNELS", "OtiiDevice"]

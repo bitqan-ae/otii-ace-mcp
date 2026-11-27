@@ -18,12 +18,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Cancellation of blocking calls (SAF-004), the safe shutdown sequence and
-# its retries (SAF-002, SAF-013), the gateway cancelling a running tool,
-# and real signals (SIGINT, SIGTERM, SIGHUP; inherited-ignored SIGINT;
-# signals after the server has been running) sent to real processes, which
-# must switch the outputs off and exit within 3 s (SAF-014, SAF-017).
-# Unsupported devices are refused without a single write (SAF-008).
+# Cancellation of blocking calls (REQ-SAFE-OUT-004), the safe shutdown
+# sequence and its retries (REQ-SAFE-OUT-002, REQ-SAFE-DEV-005), the gateway
+# cancelling a running tool, and real signals (SIGINT, SIGTERM, SIGHUP;
+# inherited-ignored SIGINT; signals after the server has been running) sent to
+# real processes, which must switch the outputs off and exit within 3 s
+# (REQ-SAFE-OUT-007, REQ-SAFE-OUT-005). Unsupported devices are refused
+# without a single write (REQ-SAFE-DEV-001).
 
 """Ctrl-C / SIGTERM handling: every exit path must leave the outputs off."""
 import os
@@ -107,11 +108,11 @@ def test_cli_ctrl_c_switches_outputs_off(monkeypatch, capsys):
 class TestGatewayShutdown:
     @pytest.fixture
     def setup(self):
-        pytest.importorskip("mcp")
         from otii_usb.interfaces.gateway import DeviceGateway
         sim = SimulatedOtii(SimulationConfig(sample_rate=5_000))
         cancel = threading.Event()
-        return sim, DeviceGateway(bound_factory(sim, cancel), SafeDefaults(), cancel)
+        return sim, DeviceGateway(bound_factory(sim, cancel), SafeDefaults(), cancel,
+                                  safe_factory=bound_factory(sim))
 
     def test_shutdown_restores_safe_state(self, setup):
         sim, gateway = setup
@@ -152,36 +153,86 @@ class TestGatewayShutdown:
 
 # ---------------------------------------------------------------- real signals, real processes
 
+MAIN_OUTPUT_OFF = "66 00 00 00 09 00 00 00 00 00 00 00"     # SET_PROPERTY main output = 0
+
+
 def _ignore_sigint() -> None:
     signal.signal(signal.SIGINT, signal.SIG_IGN)     # what a shell does for background jobs
 
 
-def _spawn(module: str, *args: str, sigint_ignored: bool = False) -> subprocess.Popen:
-    return subprocess.Popen([sys.executable, "-m", module, "--simulate", *args],
-                            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, text=True,
-                            preexec_fn=_ignore_sigint if sigint_ignored else None)
+class Child:
+    """A simulator-backed process whose stderr is read on a thread, so no pipe fills up.
 
+    stdin stays open like a real MCP client's; every wait has a time limit.
+    """
 
-def _wait_exit(proc: subprocess.Popen, timeout: float = 15.0) -> str:
-    """Wait for exit *with stdin still open* (a real client keeps it open), return stderr."""
-    try:
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        pytest.fail("process did not exit after the signal")
-    return proc.stderr.read()
+    def __init__(self, module: str, *args: str, sigint_ignored: bool = False) -> None:
+        self.proc = subprocess.Popen(
+            [sys.executable, "-m", module, "--simulate", "--debug", *args],
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+            env={**os.environ, "PYTHONFAULTHANDLER": "1"},
+            preexec_fn=_ignore_sigint if sigint_ignored else None)
+        self._lines: list[str] = []
+        self._eof = False
+        self._next = 0
+        self._mark = 0
+        self._cond = threading.Condition()
+        self._reader = threading.Thread(target=self._read, daemon=True)
+        self._reader.start()
 
+    def _read(self) -> None:
+        for line in self.proc.stderr:
+            with self._cond:
+                self._lines.append(line)
+                self._cond.notify_all()
+        with self._cond:
+            self._eof = True
+            self._cond.notify_all()
 
-def _wait_for_line(proc: subprocess.Popen, needle: str, timeout: float = 10.0) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        line = proc.stderr.readline()
-        if needle in line:
-            return
-        if not line and proc.poll() is not None:
-            break
-    pytest.fail(f"did not see {needle!r} on stderr")
+    def wait_for(self, needle: str, timeout: float = 10.0) -> None:
+        deadline = time.monotonic() + timeout
+        with self._cond:
+            while True:
+                for i in range(self._next, len(self._lines)):
+                    if needle in self._lines[i]:
+                        self._next = i + 1
+                        return
+                self._next = len(self._lines)
+                remaining = deadline - time.monotonic()
+                if self._eof or remaining <= 0:
+                    self.proc.kill()
+                    pytest.fail(f"did not see {needle!r} on stderr")
+                self._cond.wait(remaining)
+
+    def mark(self) -> None:
+        """Later output() returns only what was written after this point."""
+        with self._cond:
+            self._mark = len(self._lines)
+
+    def close_stdin(self) -> None:
+        self.proc.stdin.close()
+
+    def finish(self, timeout: float = 15.0) -> str:
+        try:
+            self.proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            self.proc.send_signal(signal.SIGABRT)       # faulthandler dumps every stack
+            try:
+                self.proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+                self.proc.wait()
+            self._reader.join(timeout=5)
+            with self._cond:
+                tail = "".join(l for l in self._lines if " RX " not in l and " TX " not in l)
+            pytest.fail(f"process did not exit after the signal:\n{tail[-4000:]}")
+        finally:
+            self._reader.join(timeout=5)
+            if not self.proc.stdin.closed:
+                self.proc.stdin.close()
+            self.proc.stderr.close()
+        with self._cond:
+            return "".join(self._lines[self._mark:])
 
 
 SERVER_SIGNAL_CASES = [
@@ -197,39 +248,66 @@ SERVER_SIGNAL_CASES = [
 @pytest.mark.skipif(os.name != "posix", reason="POSIX signals")
 @pytest.mark.parametrize(("sig", "sigint_ignored", "delay"), SERVER_SIGNAL_CASES)
 def test_mcp_server_signal_shutdown(sig, sigint_ignored, delay):
-    pytest.importorskip("mcp")
-    proc = _spawn("otii_usb.interfaces.mcp_server", sigint_ignored=sigint_ignored)
-    _wait_for_line(proc, "safe state applied")
-    time.sleep(delay)
+    child = Child("otii_usb.interfaces.mcp_server", sigint_ignored=sigint_ignored)
+    child.wait_for("safe state applied")
+    time.sleep(delay)          # the scenario itself: a server that has been idle for a while
+    child.mark()
     t0 = time.monotonic()
-    proc.send_signal(sig)
-    err = _wait_exit(proc)
+    child.proc.send_signal(sig)
+    err = child.finish()
     assert time.monotonic() - t0 < 3.0, "outputs must be switched off promptly"
-    assert proc.returncode == 0
-    assert "shutdown: outputs off" in err
+    assert child.proc.returncode == 0
+    assert MAIN_OUTPUT_OFF in err and "shutdown: outputs off" in err
+    assert "Traceback" not in err
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX signals")
+def test_mcp_server_ignores_further_signals_during_shutdown():
+    child = Child("otii_usb.interfaces.mcp_server")
+    child.wait_for("safe state applied")
+    child.mark()
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGINT):
+        child.proc.send_signal(sig)
+    err = child.finish()
+    assert child.proc.returncode == 0
+    assert MAIN_OUTPUT_OFF in err and "shutdown: outputs off" in err
     assert "Traceback" not in err
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX signals")
 def test_mcp_server_client_disconnect_shutdown():
-    pytest.importorskip("mcp")
-    proc = _spawn("otii_usb.interfaces.mcp_server")
-    _wait_for_line(proc, "safe state applied")
-    proc.stdin.close()
-    err = _wait_exit(proc)
-    assert "shutdown: outputs off" in err
+    child = Child("otii_usb.interfaces.mcp_server")
+    child.wait_for("safe state applied")
+    child.mark()
+    child.close_stdin()
+    err = child.finish()
+    assert MAIN_OUTPUT_OFF in err and "shutdown: outputs off" in err
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX signals")
-@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM])
+@pytest.mark.parametrize("sig", [signal.SIGINT, signal.SIGTERM, signal.SIGHUP])
 @pytest.mark.parametrize("sigint_ignored", [False, True])
 def test_cli_signal_during_measure(sig, sigint_ignored):
-    proc = _spawn("otii_usb", "measure", "--time", "30", sigint_ignored=sigint_ignored)
-    time.sleep(1.0)
-    proc.send_signal(sig)
-    err = _wait_exit(proc)
-    assert proc.returncode == cli.EXIT_INTERRUPTED
-    assert "outputs off, defaults restored" in err
+    child = Child("otii_usb", "measure", "--time", "30", sigint_ignored=sigint_ignored)
+    child.wait_for("RECORD_START")                       # the recording is running
+    child.mark()
+    child.proc.send_signal(sig)
+    err = child.finish()
+    assert child.proc.returncode == cli.EXIT_INTERRUPTED
+    assert MAIN_OUTPUT_OFF in err and "outputs off, defaults restored" in err
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX signals")
+def test_cli_ignores_a_second_signal_during_shutdown():
+    child = Child("otii_usb", "measure", "--time", "30")
+    child.wait_for("RECORD_START")
+    child.mark()
+    child.proc.send_signal(signal.SIGINT)
+    child.proc.send_signal(signal.SIGTERM)
+    child.proc.send_signal(signal.SIGINT)
+    err = child.finish()
+    assert child.proc.returncode == cli.EXIT_INTERRUPTED
+    assert MAIN_OUTPUT_OFF in err and "Traceback" not in err
 
 
 class TestUnsupportedDevice:
@@ -250,7 +328,6 @@ class TestUnsupportedDevice:
         assert device.info().device_type == "Ace"
 
     def test_gateway_refuses_unsupported(self):
-        pytest.importorskip("mcp")
         from otii_usb import UnsupportedDeviceError
         from otii_usb.interfaces.gateway import DeviceGateway
         sim = SimulatedOtii(SimulationConfig(device_type="Arc"))

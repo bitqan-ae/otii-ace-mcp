@@ -22,7 +22,9 @@
 # A PropertySpec names a property, its wire id (base id plus attribute
 # selector), its Codec (int, bool, float32, scaled int, string, bytes) and
 # whether this driver may write it. Properties is the catalogue of what the
-# driver uses; only entries marked writable can be set (SAF-006).
+# driver uses (DC-ARCH-PKG-003); only entries marked writable can be set
+# (REQ-SAFE-DEV-003). Encodings as measured on the Otii Ace Pro
+# (DC-HW-ACE-003).
 # PropertyClient turns get/set into GET_PROPERTY / SET_PROPERTY requests.
 
 """Typed device properties: value codecs, property specifications and a client to access them."""
@@ -30,7 +32,7 @@ import struct
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from ..errors import ProtocolError
+from ..errors import ProtocolError, ReadOnlyPropertyError
 from ..protocol.constants import Command, PropertyAttr, PropertyId
 from ..protocol.session import Session
 
@@ -131,6 +133,7 @@ class Properties:
     BOOT_VERSION = PropertySpec("bootversion", PropertyId.BOOT_VERSION, StringCodec())
     HARDWARE_VERSION = PropertySpec("hwversion", PropertyId.HARDWARE_VERSION, StringCodec())
     SERIAL_NUMBER = PropertySpec("uid", PropertyId.UID, StringCodec())
+    BOARD_SERIAL = PropertySpec("boardserial", PropertyId.BOARD_SERIAL, StringCodec())
     MAIN_OUTPUT = PropertySpec("main", PropertyId.MAIN_OUTPUT, BoolCodec(), writable=True)
     MAIN_VOLTAGE = PropertySpec("mainvolt", PropertyId.MAIN_VOLTAGE, ScaledIntCodec(1e-6),
                                 writable=True, unit="V")
@@ -155,5 +158,5 @@ class PropertyClient:
 
     def set[T](self, spec: PropertySpec[T], value: T) -> None:
         if not spec.writable:
-            raise PermissionError(f"property {spec.name!r} is read-only in this driver")
+            raise ReadOnlyPropertyError(f"property {spec.name!r} is read-only in this driver")
         self._session.request(Command.SET_PROPERTY, _ID.pack(spec.wire_id) + spec.codec.encode(value))

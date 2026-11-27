@@ -20,9 +20,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Opens /dev/ttyACM* non-blocking, takes an exclusive flock so no second
-# process can talk to the device at the same time (SAF-009), and switches
-# the line to raw 8N1 (the baud rate is irrelevant on USB CDC-ACM). Reads
-# and writes go through select() with timeouts; an empty read on a
+# process can talk to the device at the same time (REQ-SAFE-DEV-006), and
+# switches the line to raw 8N1 (the baud rate is irrelevant on USB CDC-ACM).
+# Reads and writes go through select() with timeouts; an empty read on a
 # readable port means the device was unplugged. Standard library only.
 
 """POSIX serial (CDC-ACM) transport using only the standard library."""
@@ -66,6 +66,12 @@ class SerialTransport(Transport):
             raise PortBusyError(f"{self._path} is in use by another process") from None
 
     def _configure(self) -> None:
+        try:
+            self._configure_raw()
+        except termios.error as e:
+            raise TransportError(f"{self._path} is not a serial port: {e}") from e
+
+    def _configure_raw(self) -> None:
         fd = self._require_fd()
         attrs = termios.tcgetattr(fd)
         attrs[0] = 0                                                   # iflag

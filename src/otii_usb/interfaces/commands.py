@@ -24,7 +24,7 @@
 # that returns a CommandResult (data for JSON, a headline, key/value fields
 # and optional statistics). The same entries build the otii-usb
 # subcommands, the shell's parser, its help and its completion, so help and
-# examples exist for every command (SW-014).
+# examples exist for every command (REQ-UI-CLI-002, DC-ARCH-PKG-007).
 
 """Device commands shared by the one-shot CLI and the interactive shell."""
 import argparse
@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from ..device.models import SafeDefaults
+from ..device.models import SafeDefaults, on_off
 from ..device.otii import OtiiDevice
 from ..measurement.csv_log import DEFAULT_ROW_RATE
 from ..measurement.stats import MeasurementSummary
@@ -75,7 +75,7 @@ class Command:
 
 
 def _on_off(value: bool) -> str:
-    return "ON" if value else "OFF"
+    return on_off(value).upper()
 
 
 # ---------------------------------------------------------------- runners
@@ -83,8 +83,10 @@ def _on_off(value: bool) -> str:
 def run_status(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
     info = dev.info()
     return CommandResult(info.to_dict(), f"{info.model} on {info.port}", (
-        ("serial number", info.serial_number), ("hardware", info.hardware_revision),
+        ("serial number", info.serial_number), ("board serial", info.board_serial),
+        ("hardware", info.hardware_revision),
         ("firmware", f"{info.firmware} (bootloader {info.bootloader})"),
+        ("protocol", f"version {info.protocol_version}, max payload {info.max_payload} bytes"),
         ("main output", _on_off(info.output_enabled)),
         ("voltage setpoint", f"{info.voltage_setpoint:.4f} V"),
         ("current limit", f"{info.current_limit:.4f} A")))
@@ -245,7 +247,10 @@ COMMANDS: tuple[Command, ...] = (
 COMMANDS_BY_NAME: dict[str, Command] = {c.name: c for c in COMMANDS}
 
 
-def add_command_parsers(subparsers: argparse._SubParsersAction, *, example_prefix: str) -> None:
+def add_command_parsers(subparsers: argparse._SubParsersAction, *,
+                        example_prefix: str) -> dict[str, argparse.ArgumentParser]:
+    """Add one subcommand per catalogue entry; returns their parsers by name."""
+    parsers = {}
     for command in COMMANDS:
         parser = subparsers.add_parser(
             command.name, prog=f"{example_prefix}{command.name}", help=command.help,
@@ -254,3 +259,19 @@ def add_command_parsers(subparsers: argparse._SubParsersAction, *, example_prefi
             formatter_class=argparse.RawDescriptionHelpFormatter)
         command.configure(parser)
         parser.set_defaults(command=command)
+        parsers[command.name] = parser
+    return parsers
+
+
+def completion_words(parser: argparse.ArgumentParser) -> list[tuple[str, bool]]:
+    """Options and fixed choices of a command, each with whether it takes a file name.
+
+    argparse has no public API to list its options; this is the one place that reads
+    ``_actions``.
+    """
+    words: list[tuple[str, bool]] = []
+    for action in parser._actions:
+        words += [(option, action.metavar == "FILE") for option in action.option_strings]
+        if not action.option_strings and action.choices:
+            words += [(choice, False) for choice in action.choices]
+    return words

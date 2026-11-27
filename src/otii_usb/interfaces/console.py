@@ -23,7 +23,7 @@
 # output is not a terminal (pipes, logs), coloured tables otherwise.
 # progress_bar() shows an ASCII spinner, a bar, elapsed and remaining time
 # for operations of known duration; it draws on stderr and only on
-# terminals, so JSON output and pipes stay clean (SW-015).
+# terminals, so JSON output and pipes stay clean (REQ-UI-CLI-003).
 
 """Terminal presentation: result rendering (plain, JSON, rich) and progress bars."""
 import json
@@ -50,8 +50,9 @@ THEME = Theme({
 
 
 def make_console(*, stderr: bool = False, file: IO[str] | None = None,
-                 width: int | None = None) -> Console:
-    return Console(theme=THEME, stderr=stderr, file=file, width=width, highlight=False)
+                 width: int | None = None, force_terminal: bool | None = None) -> Console:
+    return Console(theme=THEME, stderr=stderr, file=file, width=width, highlight=False,
+                   force_terminal=force_terminal)
 
 
 def _styled_value(value: str) -> str:

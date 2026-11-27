@@ -18,4 +18,5 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# All tests run against the simulator; no hardware is needed.
+# The offline tests run against the simulator; tests/hardware/ needs an
+# attached Otii Ace Pro and runs only with --hardware (DC-TOOL-TEST-002).

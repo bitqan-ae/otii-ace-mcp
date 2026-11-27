@@ -25,7 +25,7 @@
 # start time, duration, setpoint, sample and plot rates and firmware.
 # Axes use engineering prefixes (mA, µs, ...). The figure is built with
 # the object API and the Agg canvas, without pyplot's global state, so it
-# can be rendered from the MCP server's worker threads (SW-010).
+# can be rendered from the MCP server's worker threads (REQ-MEAS-REC-002).
 
 """Measurement plots: voltage, current and power over time, rendered to PNG."""
 import math

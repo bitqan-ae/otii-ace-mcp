@@ -19,8 +19,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Header, averaging to the row rate, bins across packets, raw rate, gaps,
-# statistics over full-rate samples, interrupted recordings (SW-009), the
-# CLI record command and the MCP output directory (SAF-015).
+# statistics over full-rate samples, interrupted recordings
+# (REQ-MEAS-REC-001), the CLI record command and the MCP output directory
+# (REQ-SAFE-MCP-002).
 
 import io
 import json
@@ -139,7 +140,6 @@ def test_cli_record_csv_only(tmp_path, capsys):
 class TestMcpOutputDirectory:
     @pytest.fixture
     def outputs(self, tmp_path):
-        pytest.importorskip("mcp")
         from otii_usb.interfaces.mcp_server import OutputDirectory
         return OutputDirectory(tmp_path / "records")
 

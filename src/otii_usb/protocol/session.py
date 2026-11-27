@@ -19,13 +19,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # request() sends a command with a fresh transaction id and waits for the
-# response with that id; everything else that arrives meanwhile (sample
-# data, alerts) goes to listeners. pump() processes packets for a given
-# time, sends a keepalive ping every 0.5 s and reports progress. All
-# blocking waits poll a cancel event every 50 ms, so another thread can
-# abort a long operation quickly when the program shuts down (SAF-004).
-# handshake() establishes binary mode, falling back to a text-mode wake-up
-# line between attempts.
+# response with that id; everything else that arrives meanwhile (sample data,
+# alerts) goes to listeners. pump() processes packets for a given time, sends
+# a keepalive ping every 0.5 s and reports progress. All blocking waits poll a
+# cancel event every 50 ms, so another thread can abort a long operation
+# quickly when the program shuts down (REQ-SAFE-OUT-004). handshake()
+# establishes binary mode, falling back to a text-mode wake-up line between
+# attempts. Every wait has a time limit (REQ-PROT-LINK-002).
 
 """Request/response session over a :class:`~otii_usb.transport.Transport`."""
 import itertools
@@ -112,6 +112,8 @@ class Session:
         self._fire_and_forget: set[int] = set()
         self._listeners: list[PacketListener] = []
         self._last_keepalive = time.monotonic()
+        self.alerts: list[Alert] = []
+        """Alert packets received during this session, oldest first."""
 
     @property
     def transport(self) -> Transport:
@@ -236,6 +238,7 @@ class Session:
             return
         if isinstance(packet, Alert):
             log.warning("device alert: %s", packet.data.hex(" "))
+            self.alerts.append(packet)
         for listener in tuple(self._listeners):
             listener(packet)
 

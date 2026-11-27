@@ -18,8 +18,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Only the values listed here are ever sent to the device (SAF-012); the
-# full reference with encodings is in docs/design.md section 5. Property ids
+# Only the commands listed here are ever sent to the device
+# (REQ-SAFE-DEV-007); the full reference with encodings is
+# docs/contributor/protocol.md. Property ids
 # combine a base id with an attribute selector (min, max, enum, float32,
 # step) in bits 10..13.
 
@@ -37,7 +38,6 @@ class Command(IntEnum):
     HELLO = 0x14
     GET_PROPERTY = 0x64
     SET_PROPERTY = 0x66
-    COMMIT = 0x68
     SET_CHANNEL = 0x78
     RECORD_START = 0x7C
     RECORD_STOP = 0x7E
@@ -53,10 +53,8 @@ class PacketType(IntEnum):
 class PropertyId(IntEnum):
     NAME = 0x01
     MAIN_OUTPUT = 0x09
-    POWER_REGULATION = 0x0A
     MAIN_VOLTAGE = 0x0B
     MAX_CURRENT = 0x0C
-    MAIN_CURRENT = 0x0D
     EXPANSION_VOLTAGE = 0x33
     EXPANSION_OUTPUT_VOLTAGE = 0x34
     HARDWARE_VERSION = 0x80

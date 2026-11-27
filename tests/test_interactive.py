@@ -19,9 +19,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Commands, help, error handling, the output state in the prompt, Ctrl-C
-# during a command (SAF-016), the lexer's highlighting, completion, a full
-# scripted session through prompt_toolkit that must end with the outputs
-# off (SAF-002), and refusal of unsupported devices (SAF-008).
+# during a command (REQ-SAFE-OUT-006), the lexer's highlighting, completion, a
+# full scripted session through prompt_toolkit that must end with the outputs
+# off (REQ-SAFE-OUT-002), and refusal of unsupported devices
+# (REQ-SAFE-DEV-001).
 
 import io
 
@@ -136,7 +137,7 @@ def test_lexer_styles():
 
 
 def test_completer_offers_commands_and_options():
-    completer = build_completer(build_shell_parser())
+    completer = build_completer(build_shell_parser()[1])
     words = lambda text: {c.text for c in completer.get_completions(Document(text), None)}
     assert {"record", "measure", "power-cycle", "help", "exit"} <= words("")
     assert {"--csv", "--png", "--raw", "--rate"} <= words("record --")
@@ -164,3 +165,39 @@ def test_unsupported_device_refused(tmp_path):
     shell = InteractiveShell(gateway, version="test", console=make_console(file=io.StringIO()),
                              history=InMemoryHistory())
     assert shell.run() == 2
+
+
+def test_history_is_persistent(monkeypatch, tmp_path):
+    from prompt_toolkit.history import FileHistory
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+    sim = SimulatedOtii()
+    shell = InteractiveShell(DeviceGateway(lambda: OtiiDevice.connect(sim), SafeDefaults()),
+                             version="t", console=make_console(file=io.StringIO()))
+    history = shell._file_history()
+    assert isinstance(history, FileHistory)
+    assert (tmp_path / "otii-usb").is_dir()
+
+
+def test_output_tripped_event_updates_prompt(shell):
+    from otii_usb.interfaces.monitor import MonitorEvent
+    shell.output_on = True
+    shell.on_event(MonitorEvent("critical", "output_tripped", "switched off by the device"))
+    assert shell.output_on is False
+
+
+def test_exit_code_1_when_outputs_cannot_be_switched_off(sim, monkeypatch):
+    gateway = DeviceGateway(lambda: OtiiDevice.connect(sim), SafeDefaults())
+    monkeypatch.setattr(gateway, "shutdown", lambda: None)
+    with create_pipe_input() as pipe:
+        pipe.send_text("exit\r")
+        shell = InteractiveShell(gateway, version="t", console=make_console(file=io.StringIO()),
+                                 history=InMemoryHistory(),
+                                 prompt_io={"input": pipe, "output": DummyOutput()},
+                                 poll_interval=None)
+        assert shell.run() == 1
+
+
+def test_file_error_keeps_the_session(shell, tmp_path):
+    shell.execute(f"record -t 0.02 --csv {tmp_path}/missing/x.csv")
+    shell.execute("status")
+    assert "Otii Ace Pro" in output(shell)

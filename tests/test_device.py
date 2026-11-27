@@ -18,10 +18,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Codecs and the write whitelist (SAF-006), channel records and numpy
-# sample decoding (SW-006, SW-007), identity, measurements with the output
-# on and off, read-back verified control (SAF-005), the power-cycle
-# sequence (SAF-010), the safe defaults (SAF-001) and limits (SAF-007).
+# Codecs and the write whitelist (REQ-SAFE-DEV-003), channel records and numpy
+# sample decoding (DC-ARCH-PKG-004, DC-ARCH-PKG-005), identity, measurements
+# with the output on and off, read-back verified control (REQ-SAFE-DEV-002),
+# the power-cycle sequence (REQ-SAFE-OUT-008), the safe defaults
+# (REQ-SAFE-OUT-001) and limits (REQ-SAFE-DEV-004).
 
 import numpy as np
 import pytest
@@ -29,6 +30,7 @@ import pytest
 from otii_usb import ChannelId, OtiiDevice, SafeDefaults
 from otii_usb.device import (ChannelInfo, ChannelKind, ChannelTable, Properties, PropertyClient,
                              ScaledIntCodec)
+from otii_usb.errors import ProtocolError
 from otii_usb.protocol import Command, Session
 from otii_usb.simulator import SimulatedOtii, SimulationConfig
 
@@ -67,7 +69,7 @@ class TestChannels:
             ChannelInfo(0x16, ChannelKind.DIGITAL, False, False, 0.0, 0).decode_samples(bytes(4), 1)
 
     def test_bad_table_length(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ProtocolError):
             ChannelTable.parse(bytes(15))
 
 
@@ -155,3 +157,46 @@ class TestDevice:
             dev.set_output(True)
         with OtiiDevice.connect(simulator) as dev:
             assert dev.output_enabled
+
+
+class TestReviewRegressions:
+    def test_expansion_output_off_is_verified(self, simulator):
+        """A device that ignores the expansion-port write is an error (REQ-SAFE-DEV-002)."""
+        import struct
+        simulator.state.expansion_output_voltage = 5.0
+        original = simulator._handlers[Command.SET_PROPERTY]
+
+        def ignore_expansion(args):
+            if struct.unpack_from("<I", args)[0] == Properties.EXPANSION_OUTPUT_VOLTAGE.wire_id:
+                return b""
+            return original(args)
+        simulator._handlers[Command.SET_PROPERTY] = ignore_expansion
+        simulator.state.output_enabled = True
+        with OtiiDevice.connect(simulator) as dev, pytest.raises(ProtocolError):
+            dev.apply_safe_defaults()
+        assert simulator.state.output_enabled is False          # main output went off first
+
+    def test_shutdown_switches_off_even_if_stopping_the_recording_fails(self, simulator,
+                                                                         monkeypatch):
+        """A broken channel table must not keep the output on (REQ-SAFE-OUT-002)."""
+        simulator.state.output_enabled = True
+        monkeypatch.setattr(ChannelTable, "encode", lambda self: bytes(15))   # malformed chinfo
+        with OtiiDevice.connect(simulator) as dev:
+            report = dev.shutdown()
+        assert report.main_output is False and simulator.state.output_enabled is False
+
+    def test_only_documented_commands_are_sent(self, simulator, tmp_path):
+        """Every command a full session sends is a documented one (REQ-SAFE-DEV-007)."""
+        from pathlib import Path
+        documented = Path(__file__).parents[1].joinpath("docs/contributor/protocol.md").read_text()
+        with OtiiDevice.connect(simulator) as dev:
+            dev.apply_safe_defaults()
+            dev.set_output(True)
+            dev.measure(0.02)
+            dev.capture(0.02, csv=tmp_path / "a.csv", png=tmp_path / "a.png")
+            dev.power_cycle(0.01)
+            dev.shutdown()
+        sent = {r.command for r in simulator.requests}
+        assert sent <= {c.value for c in Command}
+        for command in sent:
+            assert f"`0x{command:02x}`" in documented, f"command 0x{command:02x} undocumented"

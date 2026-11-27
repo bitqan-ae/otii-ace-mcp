@@ -22,6 +22,8 @@
 # and SilentTransport, a device that never answers (timeouts, handshake
 # fallback).
 
+from pathlib import Path
+
 import pytest
 
 from otii_usb.device import OtiiDevice
@@ -55,3 +57,21 @@ def simulator() -> SimulatedOtii:
 def device(simulator: SimulatedOtii):
     with OtiiDevice.connect(simulator) as dev:
         yield dev
+
+
+HARDWARE_DIR = Path(__file__).parent / "hardware"
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption("--hardware", action="store_true",
+                     help="also run tests/hardware against an attached Otii Ace Pro")
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    run_hardware = config.getoption("--hardware")
+    skip = pytest.mark.skip(reason="needs an Otii Ace Pro; run with --hardware")
+    for item in items:
+        if HARDWARE_DIR in Path(item.path).parents:
+            item.add_marker("hardware")
+            if not run_hardware:
+                item.add_marker(skip)

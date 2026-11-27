@@ -32,18 +32,25 @@ from ..simulator import SimulatedOtii
 type DeviceFactory = Callable[[], OtiiDevice]
 
 
-def device_factory(port: str | None = None, *, simulate: bool = False,
-                   cancel: threading.Event | None = None) -> DeviceFactory:
-    """Return a callable that opens a fresh connection on every call.
+def device_factories(port: str | None = None, *, simulate: bool = False,
+                     cancel: threading.Event | None = None) -> tuple[DeviceFactory, DeviceFactory]:
+    """Two factories for the same device: one bound to ``cancel``, one not.
 
-    In simulation mode one emulated device is shared by all connections, so its state
-    (output, setpoint, ...) persists like on real hardware. Connections made while
-    ``cancel`` is set abort their blocking operations.
+    Each call opens a fresh connection. Blocking operations of the bound factory's
+    connections abort while ``cancel`` is set; the unbound one is for the safe shutdown,
+    which must run after the cancellation. In simulation mode both share one emulated
+    device, so its state (output, setpoint, ...) persists like on real hardware.
     """
     if simulate:
         simulator = SimulatedOtii()
-        return lambda: OtiiDevice.connect(simulator, cancel=cancel)
-    return lambda: OtiiDevice.open(port, cancel=cancel)
+        return (lambda: OtiiDevice.connect(simulator, cancel=cancel),
+                lambda: OtiiDevice.connect(simulator))
+    return (lambda: OtiiDevice.open(port, cancel=cancel), lambda: OtiiDevice.open(port))
+
+
+def device_factory(port: str | None = None, *, simulate: bool = False) -> DeviceFactory:
+    """A factory that opens a fresh connection per call (see :func:`device_factories`)."""
+    return device_factories(port, simulate=simulate)[1]
 
 
 def format_si(value: float, unit: str) -> str:

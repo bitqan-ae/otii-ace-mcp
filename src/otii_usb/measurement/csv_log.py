@@ -23,8 +23,8 @@
 # time_s,voltage_v,current_a,power_w and one row per bin: averaged to the
 # chosen row rate (default 1000 rows per second) or every sample. Rows are
 # written as data arrives, so memory does not grow with the length of the
-# recording, and the file is complete when the recording is interrupted
-# (SW-009).
+# recording (DC-ARCH-PKG-006), and the file is complete when the recording
+# is interrupted (REQ-MEAS-REC-001).
 
 """CSV logging of voltage, current and power for later analysis."""
 from collections.abc import Mapping, Sequence
@@ -33,16 +33,13 @@ from typing import TYPE_CHECKING, TextIO
 import numpy as np
 from numpy.typing import NDArray
 
-from ..protocol.constants import ChannelId
 from .binning import Binner, Bins
 from .sinks import SampleSink
-from .stats import MeasurementSummary, RunningStats
+from .stats import MAIN_COLUMNS, MeasurementSummary, RunningStats
 
 if TYPE_CHECKING:
     from ..device.channels import ChannelInfo
 
-MAIN_COLUMNS: tuple[tuple[int, str], ...] = (
-    (ChannelId.MV, "voltage_v"), (ChannelId.MC, "current_a"), (ChannelId.MP, "power_w"))
 DEFAULT_ROW_RATE = 1000.0
 
 

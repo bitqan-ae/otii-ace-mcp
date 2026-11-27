@@ -26,9 +26,9 @@ from .binning import Binner, Bins
 from .csv_log import DEFAULT_ROW_RATE, MAIN_COLUMNS, ColumnSink, CsvSink
 from .recorder import Recorder, StreamResult
 from .recording import Recording
-from .sinks import ArraySink, SampleSink, StatsSink, TeeSink
+from .sinks import ArraySink, SampleSink, TeeSink
 from .stats import MeasurementSummary, RunningStats, Stats, unit_of
 
 __all__ = ["DEFAULT_ROW_RATE", "MAIN_COLUMNS", "ArraySink", "Binner", "Bins", "ColumnSink",
            "CsvSink", "MeasurementSummary", "Recorder", "Recording", "RunningStats", "SampleSink",
-           "Stats", "StatsSink", "StreamResult", "TeeSink", "unit_of"]
+           "Stats", "StreamResult", "TeeSink", "unit_of"]

@@ -21,7 +21,8 @@
 # The same framing is used in both directions. FrameDecoder takes arbitrary
 # chunks from the transport and returns complete payloads; bytes outside
 # frames (text-mode output after reset) and frames with a bad checksum are
-# skipped, and the decoder resynchronises on the next magic word (SW-003).
+# skipped, and the decoder resynchronises on the next magic word
+# (REQ-PROT-LINK-001).
 
 """Frame layer: ``u32 magic | u16 length | u16 checksum | payload`` (little endian, both ways)."""
 import struct

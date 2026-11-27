@@ -22,7 +22,7 @@
 # for the requested time while a router decodes each data packet into
 # numpy arrays for the sink, then stops recording and disables the
 # channels - in finally blocks, so this also happens on Ctrl-C or errors
-# (SAF-013). Counts missing packets from gaps in the sequence numbers.
+# (REQ-SAFE-DEV-005). Counts missing packets from gaps in the sequence numbers.
 
 """Drives a recording: enable channels, stream into a sink, always clean up."""
 import logging
@@ -62,11 +62,12 @@ class _PacketRouter:
         self._channels = channels
         self._sink = sink
         self._last_sequence: int | None = None
+        self.closed = False
         self.packets = 0
         self.missing_packets = 0
 
     def __call__(self, packet: Packet) -> None:
-        if not isinstance(packet, DataPacket):
+        if self.closed or not isinstance(packet, DataPacket):
             return
         if self._last_sequence is not None and packet.sequence > self._last_sequence + 1:
             self.missing_packets += packet.sequence - self._last_sequence - 1
@@ -104,7 +105,10 @@ class Recorder:
         sink.start(infos)
         try:
             with self._session.listening(router), self._streaming(list(infos)):
-                self._session.pump(duration, progress)
+                try:
+                    self._session.pump(duration, progress)
+                finally:
+                    router.closed = True       # packets during RECORD_STOP are not recorded
         finally:
             sink.finish()
         return StreamResult(router.packets, router.missing_packets)

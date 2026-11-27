@@ -18,18 +18,20 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Ctrl-C, SIGTERM and SIGHUP end the program the same way (SAF-014):
-#   - termination_as_interrupt() turns SIGTERM/SIGHUP into Ctrl-C for code
-#     running in the main thread (the one-shot command line), and re-arms
-#     SIGINT if it was inherited as ignored;
+# Ctrl-C, SIGTERM and SIGHUP end the program the same way (REQ-SAFE-OUT-007):
+#   - termination_as_interrupt() turns the first of them into a
+#     KeyboardInterrupt for code running in the main thread (the one-shot
+#     command line) and ignores the rest, also arming SIGINT if it was
+#     inherited as ignored (DC-HOST-SIG-001);
 #   - SafeExit runs the shutdown on its own thread and then exits the
 #     process, for programs whose main thread may be blocked (the MCP
-#     server waiting on stdin, the interactive prompt);
+#     server waiting on stdin, the interactive prompt) (DC-ARCH-RUN-002,
+#     DC-HOST-SIG-002);
 #   - signals_shielded() keeps further signals from interrupting the
-#     shutdown (SAF-003);
+#     shutdown (REQ-SAFE-OUT-003);
 #   - safe_shutdown() opens a new connection and stops recording, switches
 #     the outputs off and restores the defaults, retrying while the port is
-#     still held by an aborted call (SAF-002).
+#     still held by an aborted call (REQ-SAFE-OUT-002).
 
 """Process lifecycle: termination signals and the safe shutdown sequence.
 
@@ -63,28 +65,45 @@ def _is_main_thread() -> bool:
     return threading.current_thread() is threading.main_thread()
 
 
-def _forward_to_sigint(signum: int, frame: object) -> None:
-    log.info("received %s, shutting down", signal.Signals(signum).name)
-    signal.raise_signal(signal.SIGINT)
-
-
 @contextmanager
 def termination_as_interrupt() -> Iterator[None]:
-    """Treat SIGTERM/SIGHUP exactly like Ctrl-C (KeyboardInterrupt / asyncio cancellation).
+    """Turn the first SIGINT, SIGTERM or SIGHUP into a KeyboardInterrupt.
 
-    SIGINT is (re)armed explicitly: processes started in the background by a shell inherit
-    an *ignored* SIGINT, which would otherwise make ``kill -INT`` ineffective.
+    From that first signal on, all three are ignored, so the safe shutdown that handles the
+    KeyboardInterrupt cannot be interrupted (REQ-SAFE-OUT-003); the handler stays installed
+    (and does nothing) after the block in that case. SIGINT is armed explicitly because processes started in
+    the background by a shell inherit it as ignored (DC-HOST-SIG-001).
+
+    The handler does no I/O and takes no lock: a signal can arrive while the main thread is
+    in the middle of writing a log line, and a nested write would fail and lose the
+    interrupt.
     """
     if not _is_main_thread():
         yield
         return
-    previous = {signal.SIGINT: signal.signal(signal.SIGINT, signal.default_int_handler)}
-    previous |= {s: signal.signal(s, _forward_to_sigint) for s in TERMINATION_SIGNALS}
+    fired = [False]
+
+    def interrupt(signum: int, frame: object) -> None:
+        if fired[0]:
+            return                       # already shutting down: ignore
+        fired[0] = True
+        raise KeyboardInterrupt
+
+    previous = {s: signal.signal(s, interrupt) for s in _SHIELDED_SIGNALS}
     try:
         yield
     finally:
-        for s, handler in previous.items():
-            signal.signal(s, handler)
+        if not fired[0]:
+            for s, handler in previous.items():
+                signal.signal(s, handler)
+
+
+def _ignore(signum: int, frame: object) -> None:
+    """A handler that does nothing.
+
+    Used instead of SIG_IGN: replacing a handler by SIG_IGN while a signal is pending makes
+    CPython report "signal ignored due to race condition".
+    """
 
 
 @contextmanager
@@ -93,7 +112,7 @@ def signals_shielded() -> Iterator[None]:
     if not _is_main_thread():
         yield
         return
-    previous = {s: signal.signal(s, signal.SIG_IGN) for s in _SHIELDED_SIGNALS}
+    previous = {s: signal.signal(s, _ignore) for s in _SHIELDED_SIGNALS}
     try:
         yield
     finally:
@@ -126,10 +145,15 @@ def safe_shutdown(factory: DeviceFactory, defaults: SafeDefaults = SafeDefaults(
 class SafeExit:
     """Signal-driven shutdown that does not depend on the main thread unwinding.
 
-    The first SIGINT/SIGTERM/SIGHUP starts a dedicated thread that runs ``shutdown`` (which
-    must cancel in-flight device calls and switch the outputs off) and then ends the process
-    with ``os._exit``. Further signals are ignored. This works even while the main thread is
-    blocked (e.g. an event loop waiting on a thread that reads stdin).
+    install() starts a worker thread that waits. The first SIGINT/SIGTERM/SIGHUP wakes it; it
+    runs ``shutdown`` (which must cancel in-flight device calls and switch the outputs off)
+    and then ends the process with ``os._exit``. Further signals are ignored. This works
+    even while the main thread is blocked (an event loop waiting on a thread that reads
+    stdin, DC-HOST-SIG-002).
+
+    The signal handler only sets a flag and an event: it does no I/O and starts no thread,
+    because the signal may interrupt the main thread inside a write or while it holds
+    the thread registry's lock.
     """
 
     def __init__(self, shutdown: Callable[[], object | None], *,
@@ -138,23 +162,37 @@ class SafeExit:
         self._shutdown = shutdown
         self._signals = signals
         self._before_exit = before_exit
-        self._triggered = threading.Event()
+        self._fired = False
+        self._signal_name = ""
+        self._wake = threading.Event()
         self._previous: dict[int, object] = {}
 
     @property
     def triggered(self) -> bool:
-        return self._triggered.is_set()
+        return self._fired
 
     def install(self) -> None:
+        threading.Thread(target=self._worker, name="safe-exit", daemon=True).start()
         for sig in self._signals:
             self._previous[sig] = signal.signal(sig, self._on_signal)
 
+    def uninstall(self) -> None:
+        """Restore the previous handlers (used when the program ends by itself)."""
+        for sig, handler in self._previous.items():
+            signal.signal(sig, handler)
+        self._previous.clear()
+
     def _on_signal(self, signum: int, frame: object) -> None:
-        if self._triggered.is_set():
+        if self._fired:
             return                                  # cleanup already running: ignore
-        self._triggered.set()
-        log.info("received %s, switching outputs off", signal.Signals(signum).name)
-        threading.Thread(target=self._finish, name="safe-exit").start()
+        self._fired = True
+        self._signal_name = signal.Signals(signum).name
+        self._wake.set()
+
+    def _worker(self) -> None:
+        self._wake.wait()
+        log.info("received %s, switching outputs off", self._signal_name)
+        self._finish()
 
     def _finish(self) -> None:
         try:
@@ -177,8 +215,8 @@ class SafeExit:
 
     def exit_now(self) -> NoReturn:
         """Normal end of the program: run the shutdown here (signals ignored) and exit."""
-        if self._triggered.is_set():
-            threading.Event().wait()                # the safe-exit thread ends the process
-        self._triggered.set()
+        if self._fired:
+            threading.Event().wait()                # the worker thread ends the process
+        self._fired = True
         self._finish()
         raise AssertionError("unreachable")

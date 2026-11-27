@@ -25,7 +25,7 @@
 # domain packages: transport, protocol, device, measurement, report,
 # simulator and interfaces.
 
-"""Standalone USB driver for Qoitech Otii Ace / Arc power analyzers.
+"""USB driver for the Qoitech Otii Ace Pro power analyzer.
 
 >>> from otii_usb import OtiiDevice
 >>> with OtiiDevice.open() as otii:
@@ -33,8 +33,8 @@
 """
 from .device import MAIN_CHANNELS, DeviceInfo, OtiiDevice, SafeDefaults
 from .errors import (CommandError, DeviceNotFoundError, OperationCancelledError, OtiiError,
-                     PortBusyError, ProtocolError, ResponseTimeoutError, TransportError,
-                     UnsupportedDeviceError)
+                     PortBusyError, ProtocolError, ReadOnlyPropertyError, ResponseTimeoutError,
+                     TransportError, UnsupportedDeviceError)
 from .measurement import MeasurementSummary, Recording, Stats
 from .protocol import ChannelId
 
@@ -43,5 +43,5 @@ __version__ = "0.1.0"
 __all__ = ["MAIN_CHANNELS", "ChannelId", "CommandError", "DeviceInfo", "DeviceNotFoundError",
            "MeasurementSummary", "OtiiDevice", "OtiiError", "PortBusyError", "ProtocolError",
            "Recording", "ResponseTimeoutError", "SafeDefaults", "Stats", "TransportError",
-           "OperationCancelledError", "UnsupportedDeviceError",
+           "OperationCancelledError", "ReadOnlyPropertyError", "UnsupportedDeviceError",
            "__version__"]

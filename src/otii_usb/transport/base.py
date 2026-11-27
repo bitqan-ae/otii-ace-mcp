@@ -21,7 +21,7 @@
 # write() sends all bytes, read(timeout) returns what arrived (possibly
 # nothing), close() is idempotent. SerialTransport talks to the real device,
 # SimulatedOtii emulates it; everything above this layer works with either
-# (SW-002, SW-011).
+# (DC-ARCH-PKG-002, REQ-TEST-SIM-001).
 
 """Abstract byte transport between host and device."""
 from abc import ABC, abstractmethod

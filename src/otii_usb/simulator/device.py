@@ -26,7 +26,7 @@
 # voltage over a configurable load resistance, limited by the current
 # limit, plus optional noise. Device state survives close(), like real
 # hardware, so it can be reconnected. Used by the whole test suite and by
-# --simulate (SW-011).
+# --simulate (REQ-TEST-SIM-001).
 
 """In-memory Otii emulator implementing the :class:`~otii_usb.transport.Transport` interface."""
 import struct
@@ -61,6 +61,7 @@ class SimulationConfig:
     bootloader: str = "3.2.2"
     hardware_revision: str = "rev 2"
     serial_number: str = "000000000000"
+    board_serial: str = "00000000-00000000"
     protocol_version: int = 3
     max_payload: int = 32800
     sample_rate: int = 50_000
@@ -73,6 +74,9 @@ class SimulationConfig:
     off_voltage: float = 0.0045
     noise: float = 0.0
     seed: int = 0
+    trip_at_limit: bool = False
+    """Emulate a protection that switches the output off when the load would exceed the
+    current limit (otherwise the current is clamped to the limit)."""
 
 
 @dataclass
@@ -150,7 +154,14 @@ class SimulatedOtii(Transport):
         def __init__(self, code: int) -> None:
             self.code = code
 
+    def _apply_protection(self) -> None:
+        s, c = self.state, self.config
+        if c.trip_at_limit and s.output_enabled and \
+                s.voltage_setpoint / c.load_resistance >= s.current_limit:
+            s.output_enabled = False
+
     def _handle(self, request: Request) -> None:
+        self._apply_protection()
         self.requests.append(request)
         handler = self._handlers.get(request.command)
         try:
@@ -178,6 +189,7 @@ class SimulatedOtii(Transport):
             (Properties.BOOT_VERSION, lambda: c.bootloader),
             (Properties.HARDWARE_VERSION, lambda: c.hardware_revision),
             (Properties.SERIAL_NUMBER, lambda: c.serial_number),
+            (Properties.BOARD_SERIAL, lambda: c.board_serial),
             (Properties.MAIN_OUTPUT, lambda: s.output_enabled),
             (Properties.MAIN_VOLTAGE, lambda: s.voltage_setpoint),
             (Properties.MAIN_VOLTAGE_MAX, lambda: c.voltage_max),

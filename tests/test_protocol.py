@@ -18,9 +18,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Frame round trips, byte-by-byte feeding, resynchronisation after garbage
-# and checksum errors, packet encoders/parsers, request/response, error
-# codes, timeouts, the text-mode fallback and keepalives (SW-003, SW-004).
+# Frame round trips, byte-by-byte feeding, resynchronisation after garbage and
+# checksum errors, packet encoders/parsers, request/response, error codes,
+# timeouts, the text-mode fallback and keepalives (REQ-PROT-LINK-001,
+# REQ-PROT-LINK-002).
 
 import struct
 

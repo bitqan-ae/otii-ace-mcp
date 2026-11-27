@@ -31,7 +31,7 @@ from pathlib import Path
 from ..measurement.stats import MeasurementSummary
 
 
-def _on_off(value: bool) -> str:
+def on_off(value: bool) -> str:
     return "on" if value else "off"
 
 
@@ -41,17 +41,25 @@ class DeviceInfo:
     name: str
     device_type: str
     serial_number: str
+    board_serial: str
     hardware_revision: str
     firmware: str
     bootloader: str
     port: str
     protocol_version: int
+    max_payload: int
     output_enabled: bool
     voltage_setpoint: float
     current_limit: float
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+    @property
+    def identity(self) -> str:
+        """One line naming the device: model, serial numbers, firmware, protocol, port."""
+        return (f"{self.model}  S/N {self.serial_number} · board {self.board_serial} · "
+                f"fw {self.firmware} · protocol {self.protocol_version} · {self.port}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +68,7 @@ class OutputChange:
     after: bool
 
     def to_dict(self) -> dict:
-        return {"before": _on_off(self.before), "after": _on_off(self.after)}
+        return {"before": on_off(self.before), "after": on_off(self.after)}
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,8 +78,8 @@ class PowerCycleResult:
     is_enabled: bool
 
     def to_dict(self) -> dict:
-        return {"before": _on_off(self.was_enabled), "off_s": self.off_time,
-                "after": _on_off(self.is_enabled)}
+        return {"before": on_off(self.was_enabled), "off_s": self.off_time,
+                "after": on_off(self.is_enabled)}
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,7 +109,7 @@ class SafeStateReport:
     current_limit: float
 
     def to_dict(self) -> dict:
-        return {"main_output": _on_off(self.main_output),
+        return {"main_output": on_off(self.main_output),
                 "expansion_output_voltage_v": self.expansion_output_voltage,
                 "voltage_setpoint_v": self.voltage_setpoint,
                 "current_limit_a": self.current_limit}

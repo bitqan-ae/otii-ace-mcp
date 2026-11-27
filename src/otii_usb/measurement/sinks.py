@@ -20,9 +20,9 @@
 #
 # SampleSink is the interface: start() with the channel table, write() once
 # per 1 ms packet with numpy arrays per channel, finish() at the end (also
-# after an interruption). ArraySink builds an in-memory Recording, StatsSink
-# keeps running statistics, TeeSink feeds several sinks from one recording
-# (CSV and plot in parallel).
+# after an interruption). ArraySink builds an in-memory Recording, TeeSink
+# feeds several sinks from one recording (CSV and plot in parallel);
+# CsvSink and PlotSink live with their formats (DC-ARCH-PKG-006).
 
 """Destinations for streamed sample data."""
 from abc import ABC, abstractmethod
@@ -33,7 +33,6 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .recording import Recording
-from .stats import RunningStats
 
 if TYPE_CHECKING:
     from ..device.channels import ChannelInfo
@@ -97,17 +96,3 @@ class TeeSink(SampleSink):
                 errors.append(e)
         if errors:
             raise errors[0]
-
-
-class StatsSink(SampleSink):
-    """Running statistics per channel without storing samples."""
-
-    def __init__(self) -> None:
-        self.stats: dict[int, RunningStats] = {}
-
-    def start(self, channels: Mapping[int, "ChannelInfo"]) -> None:
-        self.stats = {ch: RunningStats() for ch in channels}
-
-    def write(self, sequence: int, samples: Mapping[int, NDArray[np.float64]]) -> None:
-        for channel, values in samples.items():
-            self.stats[channel].update(values)

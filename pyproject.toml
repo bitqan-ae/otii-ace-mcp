@@ -1,0 +1,66 @@
+# pyproject.toml: package metadata, dependencies and entry points
+#
+# Copyright (c) 2026 Milosch Meriac <meriac@bitqan.ae>
+#    developed at Bitqan Systems Design (bitqan.ae)
+#         From Idea to Manufacturable Product
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Installs the otii_usb package with the otii-usb and otii-usb-mcp
+# commands. For a development checkout use requirements.txt (see
+# README.md).
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "otii-usb"
+version = "0.1.0"
+description = "USB driver, interactive CLI and MCP server for the Qoitech Otii Ace Pro power analyzer"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+    "rich>=13.7",
+    "prompt_toolkit>=3.0.40",
+    "mcp>=2.3",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+otii-usb = "otii_usb.interfaces.cli:main"
+otii-usb-mcp = "otii_usb.interfaces.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+otii_usb = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

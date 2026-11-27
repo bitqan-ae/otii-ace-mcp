@@ -1,0 +1,15 @@
+# Runtime and test dependencies for a development checkout.
+#
+#   python3 -m venv .venv
+#   source .venv/bin/activate
+#   pip install -r requirements.txt
+#
+# The last line installs this repository itself in editable mode, which also
+# provides the otii-usb and otii-usb-mcp commands.
+numpy>=1.26
+matplotlib>=3.8
+rich>=13.7
+prompt_toolkit>=3.0.40
+mcp>=2.3
+pytest>=8
+-e .

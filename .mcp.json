@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "otii": {
+      "type": "stdio",
+      "command": ".venv/bin/otii-usb-mcp",
+      "args": []
+    }
+  }
+}

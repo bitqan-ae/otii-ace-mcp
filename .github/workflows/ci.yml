@@ -1,0 +1,66 @@
+# ci.yml: GitHub Actions - tests and a simulator smoke test
+#
+# Copyright (c) 2026 Milosch Meriac <meriac@bitqan.ae>
+#    developed at Bitqan Systems Design (bitqan.ae)
+#         From Idea to Manufacturable Product
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Runs the pytest suite and the otii-usb command against the simulator on
+# Python 3.12, 3.13 and 3.14 (SW-018). No hardware is involved.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Test
+        run: python -m pytest
+
+      - name: CLI smoke test (simulator)
+        run: |
+          otii-usb --simulate --json status
+          otii-usb --simulate --json measure --time 0.05
+          otii-usb --simulate --json record --time 0.2 --csv smoke.csv --png smoke.png

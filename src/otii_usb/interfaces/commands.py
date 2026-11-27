@@ -1,0 +1,256 @@
+# commands.py: the command catalogue shared by the command line and
+# the interactive shell
+#
+# Copyright (c) 2026 Milosch Meriac <meriac@bitqan.ae>
+#    developed at Bitqan Systems Design (bitqan.ae)
+#         From Idea to Manufacturable Product
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Each Command has a one-line help, a longer description, examples, its
+# argparse options, how long it runs (for the progress bar) and a runner
+# that returns a CommandResult (data for JSON, a headline, key/value fields
+# and optional statistics). The same entries build the otii-usb
+# subcommands, the shell's parser, its help and its completion, so help and
+# examples exist for every command (SW-014).
+
+"""Device commands shared by the one-shot CLI and the interactive shell."""
+import argparse
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+
+from ..device.models import SafeDefaults
+from ..device.otii import OtiiDevice
+from ..measurement.csv_log import DEFAULT_ROW_RATE
+from ..measurement.stats import MeasurementSummary
+from ..protocol.session import ProgressCallback
+
+AUTO = "auto"
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    data: dict
+    headline: str
+    fields: tuple[tuple[str, str], ...] = ()
+    summary: MeasurementSummary | None = None
+    warning: str | None = None
+
+
+type Runner = Callable[[OtiiDevice, argparse.Namespace, ProgressCallback | None], CommandResult]
+
+
+@dataclass(frozen=True)
+class Command:
+    name: str
+    help: str
+    description: str
+    run: Runner
+    examples: tuple[tuple[str, str], ...] = ()
+    configure: Callable[[argparse.ArgumentParser], None] = lambda parser: None
+    duration: Callable[[argparse.Namespace], float | None] = lambda args: None
+    progress_label: str = ""
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+
+    def epilog(self, prefix: str) -> str:
+        if not self.examples:
+            return ""
+        width = max(len(prefix + cmd) for cmd, _ in self.examples) + 3
+        lines = [f"  {prefix + cmd:<{width}}{text}" for cmd, text in self.examples]
+        return "examples:\n" + "\n".join(lines)
+
+
+def _on_off(value: bool) -> str:
+    return "ON" if value else "OFF"
+
+
+# ---------------------------------------------------------------- runners
+
+def run_status(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
+    info = dev.info()
+    return CommandResult(info.to_dict(), f"{info.model} on {info.port}", (
+        ("serial number", info.serial_number), ("hardware", info.hardware_revision),
+        ("firmware", f"{info.firmware} (bootloader {info.bootloader})"),
+        ("main output", _on_off(info.output_enabled)),
+        ("voltage setpoint", f"{info.voltage_setpoint:.4f} V"),
+        ("current limit", f"{info.current_limit:.4f} A")))
+
+
+def run_measure(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
+    output = dev.output_enabled
+    summary = dev.measure(args.time, progress=progress)
+    return CommandResult({"output": "on" if output else "off", **summary.to_dict()},
+                         f"main output {_on_off(output)}, {args.time:g} s window",
+                         summary=summary, warning=_missing(summary))
+
+
+def _missing(summary: MeasurementSummary) -> str | None:
+    return f"{summary.missing_packets} data packets missing" if summary.missing_packets else None
+
+
+def _record_paths(args: argparse.Namespace) -> tuple[Path | None, Path | None]:
+    csv, png = args.csv, args.png
+    if csv is None and png is None:
+        csv = png = AUTO
+    stem = Path(datetime.now().strftime("otii-%Y%m%d-%H%M%S"))
+    return (None if csv is None else stem.with_suffix(".csv") if csv == AUTO else Path(csv),
+            None if png is None else stem.with_suffix(".png") if png == AUTO else Path(png))
+
+
+def run_record(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
+    csv, png = _record_paths(args)
+    result = dev.capture(args.time, csv=csv, png=png, row_rate=None if args.raw else args.rate,
+                         progress=progress)
+    fields = []
+    if result.csv_path:
+        fields.append(("csv", f"{result.csv_path}  ({result.csv_rows} rows, "
+                              f"{result.csv_row_rate:g} rows/s)"))
+    if result.png_path:
+        fields.append(("png", str(result.png_path)))
+    return CommandResult(result.to_dict(), f"recorded {args.time:g} s", tuple(fields),
+                         summary=result.summary, warning=_missing(result.summary))
+
+
+def run_output(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
+    change = dev.set_output(args.state == "on")
+    d = change.to_dict()
+    return CommandResult(d, f"main output {d['before'].upper()} -> {d['after'].upper()}")
+
+
+def run_power_cycle(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
+    d = dev.power_cycle(args.off, progress=progress).to_dict()
+    return CommandResult(d, f"main output {d['before'].upper()} -> OFF for {args.off:g} s -> "
+                            f"{d['after'].upper()}")
+
+
+def run_safe(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
+    report = dev.apply_safe_defaults(SafeDefaults(voltage=args.voltage,
+                                                  current_limit=args.current_limit))
+    d = report.to_dict()
+    return CommandResult(d, "safe state applied", (
+        ("main output", d["main_output"].upper()),
+        ("expansion output", f"{d['expansion_output_voltage_v']:g} V"),
+        ("voltage setpoint", f"{d['voltage_setpoint_v']:.4f} V"),
+        ("current limit", f"{d['current_limit_a']:.4f} A")))
+
+
+# ---------------------------------------------------------------- argument setup
+
+def _positive(value: str) -> float:
+    number = float(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be positive")
+    return number
+
+
+def _time_option(default: float, what: str) -> Callable[[argparse.ArgumentParser], None]:
+    def configure(parser: argparse.ArgumentParser) -> None:
+        parser.add_argument("-t", "--time", type=_positive, default=default, metavar="SECONDS",
+                            help=f"{what} (default {default:g} s)")
+    return configure
+
+
+def _configure_record(parser: argparse.ArgumentParser) -> None:
+    _time_option(10.0, "recording duration")(parser)
+    parser.add_argument("--csv", nargs="?", const=AUTO, metavar="FILE",
+                        help="write a CSV file (default name: otii-<timestamp>.csv)")
+    parser.add_argument("--png", nargs="?", const=AUTO, metavar="FILE",
+                        help="write a PNG plot (default name: otii-<timestamp>.png)")
+    rate = parser.add_mutually_exclusive_group()
+    rate.add_argument("--rate", type=_positive, default=DEFAULT_ROW_RATE, metavar="HZ",
+                      help=f"CSV rows per second, averaged (default {DEFAULT_ROW_RATE:g})")
+    rate.add_argument("--raw", action="store_true", help="CSV with every sample (50 kHz)")
+
+
+def _configure_output(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("state", choices=("on", "off"), help="new main output state")
+
+
+def _configure_power_cycle(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("-o", "--off", type=_positive, default=1.0, metavar="SECONDS",
+                        help="off time (default 1 s)")
+
+
+def _configure_safe(parser: argparse.ArgumentParser) -> None:
+    defaults = SafeDefaults()
+    parser.add_argument("--voltage", type=_positive, default=defaults.voltage, metavar="VOLTS",
+                        help=f"voltage setpoint (default {defaults.voltage:g} V)")
+    parser.add_argument("--current-limit", type=_positive, default=defaults.current_limit,
+                        metavar="AMPS", help=f"current limit (default {defaults.current_limit:g} A)")
+
+
+COMMANDS: tuple[Command, ...] = (
+    Command("status", "show device identity, output state, setpoint and current limit",
+            "Read-only. Shows model, serial number, firmware, whether the main output is on, "
+            "the voltage setpoint and the current limit.",
+            run_status, examples=(("status", "show the device state"),)),
+    Command("measure", "average/min/max of voltage, current and power",
+            "Read-only. Records the main channels for a short window and prints statistics. "
+            "The output state is not changed: with the output off you see the idle readings.",
+            run_measure, examples=(
+                ("measure", "0.5 s window"),
+                ("measure -t 5", "5 s window"),
+            ), configure=_time_option(0.5, "measurement window"),
+            duration=lambda a: a.time, progress_label="measuring"),
+    Command("record", "record voltage, current and power to CSV and/or a PNG plot",
+            "Records the main channels for --time seconds. --csv writes time_s, voltage_v, "
+            "current_a, power_w rows (averaged to --rate rows per second, or every sample with "
+            "--raw); --png renders a plot over time titled with the Otii model. Both outputs "
+            "come from the same recording. Without --csv/--png both are written with "
+            "timestamped names.",
+            run_record, examples=(
+                ("record", "10 s to otii-<timestamp>.csv and .png"),
+                ("record -t 60 --csv run.csv", "only a CSV, 60 s, 1000 rows/s"),
+                ("record -t 5 --png boot.png", "only a plot"),
+                ("record -t 30 --csv --png", "both, timestamped names"),
+                ("record -t 2 --csv fast.csv --raw", "every sample (50 kHz)"),
+                ("record --csv slow.csv --rate 10", "10 averaged rows per second"),
+            ), configure=_configure_record, duration=lambda a: a.time,
+            progress_label="recording"),
+    Command("output", "switch the main output on or off",
+            "Powers or unpowers the device under test and confirms the new state by reading "
+            "it back.",
+            run_output, examples=(("output on", "power the device under test"),
+                                  ("output off", "unpower it")),
+            configure=_configure_output),
+    Command("power-cycle", "main output off, wait, on (ends ON)",
+            "Switches the main output off, waits --off seconds, and switches it on. The output "
+            "is on afterwards even if it was off before.",
+            run_power_cycle, examples=(("power-cycle", "1 s off"),
+                                       ("power-cycle -o 5", "5 s off, e.g. to drain capacitors")),
+            configure=_configure_power_cycle, duration=lambda a: a.off,
+            progress_label="output off"),
+    Command("safe", "all outputs off, set voltage setpoint and current limit",
+            "Switches the main and expansion-port outputs off, then sets the voltage setpoint "
+            "and current limit (defaults 5 V, 500 mA) and verifies them by reading back.",
+            run_safe, examples=(("safe", "outputs off, 5 V, 500 mA"),
+                                ("safe --voltage 3.3 --current-limit 0.1", "3.3 V, 100 mA")),
+            configure=_configure_safe),
+)
+
+COMMANDS_BY_NAME: dict[str, Command] = {c.name: c for c in COMMANDS}
+
+
+def add_command_parsers(subparsers: argparse._SubParsersAction, *, example_prefix: str) -> None:
+    for command in COMMANDS:
+        parser = subparsers.add_parser(
+            command.name, prog=f"{example_prefix}{command.name}", help=command.help,
+            description=command.description,
+            epilog=command.epilog(example_prefix),
+            formatter_class=argparse.RawDescriptionHelpFormatter)
+        command.configure(parser)
+        parser.set_defaults(command=command)

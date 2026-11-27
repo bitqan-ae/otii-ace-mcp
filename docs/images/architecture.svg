@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="640" viewBox="0 0 900 640" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>otii-usb architecture: layers from user interfaces down to the device</title>
+  <rect x="0" y="0" width="900" height="640" rx="14" fill="#ffffff"/>
+  <style>
+    .layer { font-size: 12px; fill: #6b7280; letter-spacing: 0.08em; }
+    .box-title { font-size: 15px; font-weight: 600; fill: #111827; }
+    .box-text { font-size: 12.5px; fill: #374151; }
+    .arrow { stroke: #9ca3af; stroke-width: 1.6; marker-end: url(#head); fill: none; }
+  </style>
+  <defs>
+    <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
+    </marker>
+  </defs>
+
+  <!-- users -->
+  <text class="layer" x="30" y="38">USERS &amp; AGENTS</text>
+  <rect x="30" y="50" width="260" height="62" rx="10" fill="#ecfeff" stroke="#22d3ee"/>
+  <text class="box-title" x="48" y="76">otii-usb</text>
+  <text class="box-text" x="48" y="97">one-shot CLI · scripts · CI · --json</text>
+  <rect x="320" y="50" width="260" height="62" rx="10" fill="#ecfeff" stroke="#22d3ee"/>
+  <text class="box-title" x="338" y="76">otii-usb -i</text>
+  <text class="box-text" x="338" y="97">interactive shell · completion · history</text>
+  <rect x="610" y="50" width="260" height="62" rx="10" fill="#ecfeff" stroke="#22d3ee"/>
+  <text class="box-title" x="628" y="76">otii-usb-mcp</text>
+  <text class="box-text" x="628" y="97">MCP server (stdio) for agents</text>
+
+  <!-- interfaces -->
+  <text class="layer" x="30" y="148">interfaces/</text>
+  <rect x="30" y="160" width="840" height="70" rx="10" fill="#f5f3ff" stroke="#a78bfa"/>
+  <text class="box-title" x="48" y="186">commands · console · gateway · lifecycle</text>
+  <text class="box-text" x="48" y="208">one command catalogue (help + examples) · rich output and progress bars · serialised,</text>
+  <text class="box-text" x="48" y="223">cancellable device access · safe defaults at start · signal-driven safe exit</text>
+
+  <!-- domain -->
+  <text class="layer" x="30" y="266">DOMAIN</text>
+  <rect x="30" y="278" width="300" height="92" rx="10" fill="#eef2ff" stroke="#818cf8"/>
+  <text class="box-title" x="48" y="304">device/</text>
+  <text class="box-text" x="48" y="326">OtiiDevice facade · typed properties</text>
+  <text class="box-text" x="48" y="344">channel table · supported-device check</text>
+  <text class="box-text" x="48" y="362">safe defaults · power cycle · capture</text>
+  <rect x="350" y="278" width="300" height="92" rx="10" fill="#f0fdfa" stroke="#2dd4bf"/>
+  <text class="box-title" x="368" y="304">measurement/</text>
+  <text class="box-text" x="368" y="326">Recorder → sinks (array · stats · CSV)</text>
+  <text class="box-text" x="368" y="344">Binner (mean/min/max) · numpy arrays</text>
+  <text class="box-text" x="368" y="362">running statistics · tee to several sinks</text>
+  <rect x="670" y="278" width="200" height="92" rx="10" fill="#fffbeb" stroke="#fbbf24"/>
+  <text class="box-title" x="688" y="304">report/</text>
+  <text class="box-text" x="688" y="326">PlotSink</text>
+  <text class="box-text" x="688" y="344">matplotlib PNG</text>
+  <text class="box-text" x="688" y="362">V · I · P over time</text>
+
+  <!-- protocol -->
+  <text class="layer" x="30" y="406">protocol/</text>
+  <rect x="30" y="418" width="840" height="62" rx="10" fill="#f9fafb" stroke="#9ca3af"/>
+  <text class="box-title" x="48" y="444">Session · packets · framing · constants</text>
+  <text class="box-text" x="48" y="466">transaction ids · request/response · listeners for sample data · keepalive · cancel event (≤ 50 ms)</text>
+
+  <!-- transport -->
+  <text class="layer" x="30" y="516">transport/</text>
+  <rect x="30" y="528" width="400" height="62" rx="10" fill="#f9fafb" stroke="#9ca3af"/>
+  <text class="box-title" x="48" y="554">Transport (ABC) → SerialTransport</text>
+  <text class="box-text" x="48" y="576">raw CDC-ACM · flock · USB discovery 0fce:d1e6</text>
+  <rect x="470" y="528" width="400" height="62" rx="10" fill="#fdf2f8" stroke="#f472b6"/>
+  <text class="box-title" x="488" y="554">simulator/ · SimulatedOtii</text>
+  <text class="box-text" x="488" y="576">same Transport interface · tests · --simulate</text>
+
+  <text class="box-text" x="30" y="620" fill="#6b7280">Otii Ace Pro ⟷ USB ⟷ SerialTransport.  Dependencies point downwards only.</text>
+
+  <path class="arrow" d="M160 112 V158"/>
+  <path class="arrow" d="M450 112 V158"/>
+  <path class="arrow" d="M740 112 V158"/>
+  <path class="arrow" d="M180 230 V276"/>
+  <path class="arrow" d="M500 230 V276"/>
+  <path class="arrow" d="M770 230 V276"/>
+  <path class="arrow" d="M180 370 V416"/>
+  <path class="arrow" d="M500 370 V416"/>
+  <path class="arrow" d="M230 480 V526"/>
+  <path class="arrow" d="M670 480 V526"/>
+</svg>

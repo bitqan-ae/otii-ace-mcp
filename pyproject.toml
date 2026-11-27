@@ -42,4 +42,5 @@ otii_usb = ["py.typed"]
 testpaths = ["tests"]
 addopts = "-ra"
 filterwarnings = ["error"]
-markers = ["hardware: needs an attached Otii Ace Pro; run with --hardware"]
+markers = ["hardware: needs an attached Otii Ace Pro; run with --hardware",
+           "switches_output: powers the device under test; also needs --switch-output"]

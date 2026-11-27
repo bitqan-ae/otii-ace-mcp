@@ -19,10 +19,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Tools: status, measure, record (CSV and/or PNG into the output directory),
+# Tools: status, measure, record (CSV and/or PNG into the output directory,
+# optionally switching the output on inside the recording, REQ-MEAS-REC-004),
 # set_output and power_cycle (REQ-UI-MCP-001); power_cycle always ends with
 # the output on and says so (REQ-SAFE-OUT-008). Reads are annotated read-only,
-# output switching destructive, so clients ask before switching power
+# output switching (also record) destructive, so clients ask before switching power
 # (REQ-SAFE-MCP-001); numeric parameters are clamped (REQ-SAFE-DEV-004) and
 # file names are confined to the output directory (REQ-SAFE-MCP-002).
 #
@@ -131,20 +132,27 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
             return {"output": output, **summary.to_dict()}, summary
         return await run(action)
 
-    @server.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
+    # destructive: record(power_on=true) switches the output (REQ-SAFE-MCP-001)
+    @server.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True,
                                              idempotent_hint=False))
     async def record(duration_s: float = 10.0, csv: bool = True, png: bool = True,
-                     rate_hz: float | None = 1000.0, name: str | None = None) -> dict:
+                     rate_hz: float | None = 1000.0, name: str | None = None,
+                     power_on: bool = False, pre_trigger_s: float = 0.05) -> dict:
         """Record main voltage [V], current [A] and power [W] for duration_s seconds
         (0.01..600) into the server's output directory: a CSV file (columns time_s, voltage_v,
         current_a, power_w; rate_hz rows per second averaged, 1..50000, null = every sample)
         and/or a PNG plot over time titled with the Otii model. Select csv and png
         individually or together (at least one). name: plain file name without suffix
-        (default: timestamped). Returns the absolute paths and avg/min/max/std per channel."""
+        (default: timestamped). Returns the absolute paths and avg/min/max/std per channel.
+        power_on=true powers the device under test: the main output must be off; it is
+        switched on pre_trigger_s seconds (0..10, less than duration_s) into the recording and
+        off at the end. The time the switch-on command was sent is marked in the plot and in
+        the CSV column output_on; power_on.command_sent_s in the result."""
         if not (csv or png):
             raise RuntimeError("select csv and/or png")
         duration = clamp(duration_s, 0.01, 600.0, "duration_s")
         rate = None if rate_hz is None else clamp(rate_hz, 1.0, 50_000.0, "rate_hz")
+        pre = clamp(pre_trigger_s, 0.0, 10.0, "pre_trigger_s")
         try:
             stem = outputs.stem(name)
         except (ValueError, OSError) as e:
@@ -152,8 +160,12 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
 
         def action(d: OtiiDevice) -> tuple[dict, MeasurementSummary]:
             result = d.capture(duration, csv=stem.with_suffix(".csv") if csv else None,
-                               png=stem.with_suffix(".png") if png else None, row_rate=rate)
-            return result.to_dict(), result.summary
+                               png=stem.with_suffix(".png") if png else None, row_rate=rate,
+                               power_on=power_on, pre_trigger=pre)
+            data = result.to_dict()
+            if result.power_on is not None and (warning := result.power_on.warning):
+                data["power_on"]["warning"] = warning
+            return data, result.summary
         return await run(action)
 
     @server.tool(annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True))

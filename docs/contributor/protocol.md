@@ -245,6 +245,12 @@ A recording is set up with requests and then streams **one data packet per milli
 4. RECORD_STOP,
 5. SET_CHANNEL `[channel][0]` for each channel.
 
+Requests may be sent between steps 3 and 4; data packets keep arriving while the host waits
+for the reply. `otii-usb` sends SET_PROPERTY `main` = 1 and reads it back there for a power-on
+recording (`REQ-MEAS-REC-004`). The output does not switch at once: in a capture at 5 V the
+voltage started to rise about 6 ms after the last data packet received before the request and
+reached 90 % about 17 ms after it.
+
 ![Data packet](../images/protocol-data-packet.svg)
 
 ```text
@@ -375,6 +381,7 @@ Reproduce it with any command and `--debug`, for example
 |---|---|
 | framing, checksum, byte order | verified on the Ace Pro, every frame |
 | HELLO, GET/SET_PROPERTY, SET_CHANNEL, RECORD_START/STOP, PING | verified |
+| GET/SET_PROPERTY `main` during a recording (§10) | verified (stream continues, no packets missing) |
 | properties in §8, channel table §9 | verified (values read back) |
 | data packets §10 | verified (decoded values match the device's own channel values) |
 | property updates §11 | structure observed; not used |

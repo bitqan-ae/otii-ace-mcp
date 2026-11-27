@@ -20,7 +20,8 @@
 #
 # A simulator with a reduced sample rate (fast tests), a connected device,
 # and SilentTransport, a device that never answers (timeouts, handshake
-# fallback).
+# fallback). --hardware runs tests/hardware; tests there that switch the
+# output (marked switches_output) also need --switch-output.
 
 from pathlib import Path
 
@@ -65,13 +66,19 @@ HARDWARE_DIR = Path(__file__).parent / "hardware"
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption("--hardware", action="store_true",
                      help="also run tests/hardware against an attached Otii Ace Pro")
+    parser.addoption("--switch-output", action="store_true",
+                     help="with --hardware: also run tests that switch the main output on")
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     run_hardware = config.getoption("--hardware")
+    switch_output = config.getoption("--switch-output")
     skip = pytest.mark.skip(reason="needs an Otii Ace Pro; run with --hardware")
+    skip_power = pytest.mark.skip(reason="powers the device under test; add --switch-output")
     for item in items:
         if HARDWARE_DIR in Path(item.path).parents:
             item.add_marker("hardware")
             if not run_hardware:
                 item.add_marker(skip)
+            elif "switches_output" in item.keywords and not switch_output:
+                item.add_marker(skip_power)

@@ -34,7 +34,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ..device.models import SafeDefaults, on_off
-from ..device.otii import OtiiDevice
+from ..device.otii import DEFAULT_PRE_TRIGGER, OtiiDevice
 from ..measurement.csv_log import DEFAULT_ROW_RATE
 from ..measurement.stats import MeasurementSummary
 from ..protocol.session import ProgressCallback
@@ -116,15 +116,20 @@ def _record_paths(args: argparse.Namespace) -> tuple[Path | None, Path | None]:
 def run_record(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
     csv, png = _record_paths(args)
     result = dev.capture(args.time, csv=csv, png=png, row_rate=None if args.raw else args.rate,
-                         progress=progress)
+                         progress=progress, power_on=args.power_on, pre_trigger=args.pre)
     fields = []
+    warnings = [w for w in (_missing(result.summary),
+                            result.power_on.warning if result.power_on else None) if w]
+    if (event := result.power_on) is not None:
+        fields.append(("power on", f"switch-on sent at {event.command_sent * 1e3:.0f} ms, "
+                                   "output OFF after"))
     if result.csv_path:
         fields.append(("csv", f"{result.csv_path}  ({result.csv_rows} rows, "
                               f"{result.csv_row_rate:g} rows/s)"))
     if result.png_path:
         fields.append(("png", str(result.png_path)))
     return CommandResult(result.to_dict(), f"recorded {args.time:g} s", tuple(fields),
-                         summary=result.summary, warning=_missing(result.summary))
+                         summary=result.summary, warning="; ".join(warnings) or None)
 
 
 def run_output(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
@@ -159,6 +164,13 @@ def _positive(value: str) -> float:
     return number
 
 
+def _not_negative(value: str) -> float:
+    number = float(value)
+    if not number >= 0:
+        raise argparse.ArgumentTypeError("must not be negative")
+    return number
+
+
 def _time_option(default: float, what: str) -> Callable[[argparse.ArgumentParser], None]:
     def configure(parser: argparse.ArgumentParser) -> None:
         parser.add_argument("-t", "--time", type=_positive, default=default, metavar="SECONDS",
@@ -176,6 +188,12 @@ def _configure_record(parser: argparse.ArgumentParser) -> None:
     rate.add_argument("--rate", type=_positive, default=DEFAULT_ROW_RATE, metavar="HZ",
                       help=f"CSV rows per second, averaged (default {DEFAULT_ROW_RATE:g})")
     rate.add_argument("--raw", action="store_true", help="CSV with every sample (50 kHz)")
+    parser.add_argument("--power-on", action="store_true",
+                        help="switch the main output on during the recording (it must be off) "
+                             "and off at the end, to capture the power-up")
+    parser.add_argument("--pre", type=_not_negative, default=DEFAULT_PRE_TRIGGER,
+                        metavar="SECONDS", help="with --power-on: time recorded before switching "
+                                                f"on (default {DEFAULT_PRE_TRIGGER:g} s)")
 
 
 def _configure_output(parser: argparse.ArgumentParser) -> None:
@@ -213,7 +231,9 @@ COMMANDS: tuple[Command, ...] = (
             "current_a, power_w rows (averaged to --rate rows per second, or every sample with "
             "--raw); --png renders a plot over time titled with the Otii model. Both outputs "
             "come from the same recording. Without --csv/--png both are written with "
-            "timestamped names.",
+            "timestamped names. --power-on switches the main output on --pre seconds into the "
+            "recording, so the power-up is recorded, and off at the end (also on errors); the "
+            "time the command was sent is marked in the plot and in the CSV column output_on.",
             run_record, examples=(
                 ("record", "10 s to otii-<timestamp>.csv and .png"),
                 ("record -t 60 --csv run.csv", "only a CSV, 60 s, 1000 rows/s"),
@@ -221,6 +241,8 @@ COMMANDS: tuple[Command, ...] = (
                 ("record -t 30 --csv --png", "both, timestamped names"),
                 ("record -t 2 --csv fast.csv --raw", "every sample (50 kHz)"),
                 ("record --csv slow.csv --rate 10", "10 averaged rows per second"),
+                ("record -t 1 --power-on --png boot.png", "power up the board and record its boot"),
+                ("record -t 0.2 --power-on --pre 0.01 --csv --raw", "first 190 ms, every sample"),
             ), configure=_configure_record, duration=lambda a: a.time,
             progress_label="recording"),
     Command("output", "switch the main output on or off",

@@ -34,6 +34,7 @@ docs/tools/       protocol_figures.py regenerates the protocol figures
 python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 python -m pytest                          # offline suite, no hardware
 python -m pytest --hardware tests/hardware  # read-only checks on an attached Otii Ace Pro
+python -m pytest --hardware --switch-output tests/hardware  # also tests that power the DUT
 otii-usb --simulate -i                    # interactive shell against the simulator
 otii-usb --debug status                   # every frame as hex
 python docs/tools/protocol_figures.py     # regenerate protocol SVGs and PNGs
@@ -74,10 +75,11 @@ order, cited as code. Full rules: [design.md, Identifiers](docs/contributor/desi
 **Python** (`DC-TOOL-PY-001`, `-002`): Python ≥ 3.12; numpy for sample data; dependencies in
 [`pyproject.toml`](pyproject.toml) and [`requirements.txt`](requirements.txt); warnings are errors in tests.
 
-**Tests** (`DC-TOOL-TEST-001` to `-006`)
+**Tests** (`DC-TOOL-TEST-001` to `-007`)
 - Write only in the test's temporary directory; every test can fail.
 - Wait for events, not for fixed times; run new or failed tests alone first.
-- Hardware tests live in `tests/hardware/` and skip themselves without `--hardware`.
+- Hardware tests live in `tests/hardware/` and skip themselves without `--hardware`; those that
+  switch the output on also need `--switch-output`.
 
 **Reviews** (`DC-TOOL-REV-001`): every change is reviewed against the
 [code review guideline](docs/contributor/design.md#code-review-guideline); findings ranked,

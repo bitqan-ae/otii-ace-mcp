@@ -19,8 +19,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # DeviceInfo (identity and state), OutputChange, PowerCycleResult,
-# SafeDefaults (the safe state: outputs off, 5 V, 500 mA), SafeStateReport
-# and CaptureResult (files written by a recording). All are frozen
+# SafeDefaults (the safe state: outputs off, 5 V, 500 mA), SafeStateReport,
+# CaptureResult (files written by a recording) and PowerOnEvent (the
+# switch-on in a power-on recording, REQ-MEAS-REC-004). All are frozen
 # dataclasses with to_dict() for JSON and MCP output.
 
 """Value objects returned by :class:`~otii_usb.device.otii.OtiiDevice`."""
@@ -126,6 +127,7 @@ class CaptureResult:
     csv_rows: int = 0
     csv_row_rate: float = 0.0
     png_path: Path | None = None
+    power_on: "PowerOnEvent | None" = None
 
     def to_dict(self) -> dict:
         result: dict = {"started": self.started.isoformat(timespec="seconds"),
@@ -135,4 +137,28 @@ class CaptureResult:
                              "row_rate_hz": self.csv_row_rate}
         if self.png_path is not None:
             result["png"] = {"path": str(self.png_path)}
+        if self.power_on is not None:
+            result["power_on"] = self.power_on.to_dict()
         return result | self.summary.to_dict()
+
+
+@dataclass(frozen=True, slots=True)
+class PowerOnEvent:
+    """The switch-on in a power-on recording.
+
+    ``command_sent``: when the switch-on command was sent, on the recording's time axis (the
+    end of the last data packet received before it). ``on_at_end``: False if the device
+    switched the output off during the recording.
+    """
+    command_sent: float
+    on_at_end: bool
+
+    def to_dict(self) -> dict:
+        return {"command_sent_s": self.command_sent, "output_at_end": on_off(self.on_at_end),
+                "output_after": "off"}
+
+    @property
+    def warning(self) -> str | None:
+        if self.on_at_end:
+            return None
+        return "the device switched the output off during the recording"

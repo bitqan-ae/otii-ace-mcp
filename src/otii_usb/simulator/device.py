@@ -129,6 +129,7 @@ class SimulatedOtii(Transport):
     # ------------------------------------------------------------ Transport
 
     def write(self, data: bytes) -> None:
+        self._emit_samples()            # packets due before the request reflect the old state
         for payload in self._decoder.feed(data):
             self._handle(parse_request(payload))
 

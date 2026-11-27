@@ -24,10 +24,13 @@
 # chosen row rate (default 1000 rows per second) or every sample. Rows are
 # written as data arrives, so memory does not grow with the length of the
 # recording (DC-ARCH-PKG-006), and the file is complete when the recording
-# is interrupted (REQ-MEAS-REC-001).
+# is interrupted (REQ-MEAS-REC-001). A power-on recording adds the column
+# output_on: 0, then 1 from the row whose bin contains the time the
+# switch-on command was sent
+# (REQ-MEAS-REC-004).
 
 """CSV logging of voltage, current and power for later analysis."""
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, TextIO
 
 import numpy as np
@@ -83,17 +86,22 @@ class CsvSink(ColumnSink):
 
     ``row_rate`` rows per second, each the mean of its bin; ``row_rate=None`` writes every
     sample. ``time_s`` is the bin start relative to the first packet. Statistics are
-    accumulated over the full-rate samples.
+    accumulated over the full-rate samples. With ``output_on`` (when the switch-on command
+    was sent, None before) a last column ``output_on`` is 0 before that time and 1 from the
+    row whose bin contains it.
     """
 
     def __init__(self, stream: TextIO, *, row_rate: float | None = DEFAULT_ROW_RATE,
-                 columns: Sequence[tuple[int, str]] = MAIN_COLUMNS, precision: int = 9) -> None:
+                 columns: Sequence[tuple[int, str]] = MAIN_COLUMNS, precision: int = 9,
+                 output_on: Callable[[], float | None] | None = None) -> None:
         super().__init__(columns)
         if row_rate is not None and row_rate <= 0:
             raise ValueError("row rate must be positive")
         self._stream = stream
         self._requested_rate = row_rate
-        self._fmt = ",".join(["%.9f"] + [f"%.{precision}g"] * len(self.columns))
+        self._output_on = output_on
+        self._fmt = ",".join(["%.9f"] + [f"%.{precision}g"] * len(self.columns)
+                             + (["%d"] if output_on is not None else []))
         self._binner: Binner | None = None
         self.rows = 0
 
@@ -110,7 +118,10 @@ class CsvSink(ColumnSink):
         decimation = 1 if self._requested_rate is None else \
             max(1, round(self.sample_rate / self._requested_rate))
         self._binner = Binner(self.sample_rate, decimation, len(self.columns))
-        self._stream.write("time_s," + ",".join(name for _, name in self.columns) + "\n")
+        names = ["time_s", *(name for _, name in self.columns)]
+        if self._output_on is not None:
+            names.append("output_on")
+        self._stream.write(",".join(names) + "\n")
 
     def write_block(self, sequence: int, block: NDArray[np.float64]) -> None:
         assert self._binner is not None
@@ -118,8 +129,12 @@ class CsvSink(ColumnSink):
 
     def _emit(self, bins: Bins) -> None:
         if len(bins):
-            np.savetxt(self._stream, np.column_stack([bins.times, bins.mean]), fmt=self._fmt,
-                       delimiter=",")
+            columns = [bins.times, bins.mean]
+            if self._output_on is not None:
+                sent = self._output_on()
+                bin_end = bins.times + self.decimation / self.sample_rate
+                columns.append(np.zeros(len(bins)) if sent is None else bin_end > sent)
+            np.savetxt(self._stream, np.column_stack(columns), fmt=self._fmt, delimiter=",")
             self.rows += len(bins)
 
     def finish(self) -> None:

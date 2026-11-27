@@ -23,7 +23,9 @@
 # and min/max as a translucent band, so short spikes stay visible at any
 # zoom. The title names the Otii model and serial number; below it the
 # start time, duration, setpoint, sample and plot rates and firmware.
-# Axes use engineering prefixes (mA, µs, ...). The figure is built with
+# Axes use engineering prefixes (mA, µs, ...). A power-on recording marks
+# when the switch-on command was sent with a dashed line (REQ-MEAS-REC-004).
+# The figure is built with
 # the object API and the Agg canvas, without pyplot's global state, so it
 # can be rendered from the MCP server's worker threads (REQ-MEAS-REC-002).
 
@@ -102,6 +104,8 @@ class PlotInfo:
     sample_rate: int
     bin_rate: float
     voltage_setpoint: float | None = None
+    output_on: float | None = None
+    """When the switch-on command was sent [s on the time axis], marked with a dashed line."""
 
 
 def _rate(hz: float) -> str:
@@ -123,6 +127,10 @@ def render_png(path: str | Path, bins: Bins, info: PlotInfo, summary: Measuremen
                 ax.fill_between(bins.times, bins.minimum[:, i], bins.maximum[:, i],
                                 color=colour, alpha=0.18, linewidth=0, label="min / max")
             ax.plot(bins.times, bins.mean[:, i], color=colour, linewidth=1.3, label="mean")
+        if info.output_on is not None:
+            at = EngFormatter(unit="s", places=1, sep=" ")(info.output_on)
+            ax.axvline(info.output_on, color=_INK, linestyle="--", linewidth=1.0,
+                       label=f"switch-on sent ({at})")
         ax.yaxis.set_major_formatter(EngFormatter(unit=unit, sep=" "))
         ax.set_ylabel(label, color=_INK, fontsize=11, labelpad=10)
         ax.grid(True, color=_GRID, linewidth=0.8)
@@ -139,7 +147,7 @@ def render_png(path: str | Path, bins: Bins, info: PlotInfo, summary: Measuremen
                     bbox={"boxstyle": "round,pad=0.4", "facecolor": _PAPER,
                           "edgecolor": _GRID, "alpha": 0.9})
         if i == 0:
-            ax.legend(loc="upper left", frameon=False, fontsize=8, labelcolor=_MUTED, ncols=2)
+            ax.legend(loc="upper left", frameon=False, fontsize=8, labelcolor=_MUTED, ncols=4)
 
     axes[-1].xaxis.set_major_formatter(EngFormatter(unit="s", sep=" "))
     axes[-1].set_xlabel("Time", color=_INK, fontsize=11, labelpad=8)

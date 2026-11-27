@@ -31,7 +31,10 @@
 #
 # Measurement: record() returns numpy arrays, measure() statistics,
 # stream() feeds any SampleSink, capture() writes a CSV file and/or a PNG
-# plot from one recording (REQ-MEAS-REC-003).
+# plot from one recording (REQ-MEAS-REC-003). capture(power_on=True) needs
+# the output off, switches it on pre_trigger seconds into the recording,
+# marks when the command was sent in the CSV and the plot, and switches the
+# output off at the end and on every error (REQ-MEAS-REC-004).
 
 """High-level device facade."""
 import logging
@@ -50,7 +53,7 @@ from typing import Self
 from ..errors import OtiiError, ProtocolError
 
 from ..measurement.csv_log import DEFAULT_ROW_RATE, ColumnSink, CsvSink
-from ..measurement.recorder import Recorder, StreamResult
+from ..measurement.recorder import Recorder, StreamResult, Trigger
 from ..measurement.sinks import SampleSink, TeeSink
 from ..report.plot import PlotInfo, PlotSink, render_png
 from ..measurement.recording import Recording
@@ -62,12 +65,14 @@ from ..transport.base import Transport
 from ..transport.discovery import find_otii_port
 from ..transport.serial import SerialTransport
 from .channels import ChannelTable
-from .models import (CaptureResult, DeviceInfo, OutputChange, PowerCycleResult, SafeDefaults,
-                     SafeStateReport)
+from .models import (CaptureResult, DeviceInfo, OutputChange, PowerCycleResult, PowerOnEvent,
+                     SafeDefaults, SafeStateReport)
 from .properties import Properties, PropertyClient, PropertySpec
 from .support import SupportedDevice, identify
 
 MAIN_CHANNELS: tuple[ChannelId, ...] = (ChannelId.MV, ChannelId.MC, ChannelId.MP)
+DEFAULT_PRE_TRIGGER = 0.05
+"""Seconds recorded with the output off before a power-on recording switches it on."""
 log = logging.getLogger(__name__)
 
 
@@ -283,45 +288,92 @@ class OtiiDevice:
 
     def capture(self, duration: float, *, csv: str | Path | None = None,
                 png: str | Path | None = None, row_rate: float | None = DEFAULT_ROW_RATE,
-                progress: ProgressCallback | None = None) -> CaptureResult:
+                progress: ProgressCallback | None = None, power_on: bool = False,
+                pre_trigger: float = DEFAULT_PRE_TRIGGER) -> CaptureResult:
         """Record voltage, current and power to a CSV file and/or a PNG plot.
 
         Both outputs are fed from the same recording. ``row_rate`` CSV rows per second
         (averaged) or every sample with ``row_rate=None``. On interruption the CSV file is
         still complete and closed; the plot is only rendered after a full recording.
+
+        ``power_on``: the main output must be off; it is switched on ``pre_trigger`` seconds
+        into the recording (``duration`` includes them) and off again at the end and on any
+        error. When the switch-on command was sent (the end of the last data packet received
+        before it) is marked in the CSV (column ``output_on``) and the plot.
         """
         if duration <= 0:
             raise ValueError("duration must be positive")
         if csv is None and png is None:
             raise ValueError("select at least one output (csv and/or png)")
+        if power_on and not 0 <= pre_trigger < duration:
+            raise ValueError("pre-trigger time must be at least 0 and shorter than the duration")
+        if power_on and self.output_enabled:
+            raise ValueError("the main output is already on; switch it off for a power-on "
+                             "recording")
         plot_info = PlotInfo(model=self.model, serial_number=self.get(Properties.SERIAL_NUMBER),
                              firmware=self.firmware_version, started=datetime.now().astimezone(),
                              duration=duration, sample_rate=0, bin_rate=0.0,
                              voltage_setpoint=self.voltage_setpoint)
+        sent: list[float] = []          # when the switch-on command was sent
+
+        def switch_on(at: float) -> None:
+            sent.append(at)
+            self._switch_on()
+        trigger = Trigger(switch_on, pre_trigger) if power_on else None
         sinks: list[ColumnSink] = []
         with ExitStack() as files:
             csv_sink = None
             if csv is not None:
                 stream = files.enter_context(Path(csv).open("w", newline=""))
-                csv_sink = CsvSink(stream, row_rate=row_rate)
+                csv_sink = CsvSink(stream, row_rate=row_rate,
+                                   output_on=(lambda: sent[0] if sent else None)
+                                   if power_on else None)
                 sinks.append(csv_sink)
             plot_sink = PlotSink(duration) if png is not None else None
             if plot_sink is not None:
                 sinks.append(plot_sink)
-            result = Recorder(self._session, self.channels).stream(
-                MAIN_CHANNELS, duration, TeeSink(*sinks), progress)
+            tee = TeeSink(*sinks)
+            try:
+                result = Recorder(self._session, self.channels).stream(
+                    MAIN_CHANNELS, duration, tee, progress, trigger)
+            except BaseException:
+                if power_on:
+                    self._switch_off_best_effort()
+                raise
+        event = None
+        if power_on:
+            try:
+                on_at_end = self.set_output(False).before
+            except BaseException:
+                self._switch_off_best_effort()
+                raise
+            assert result.trigger_time is not None
+            event = PowerOnEvent(result.trigger_time, on_at_end)
         summary = sinks[0].summary(duration, result.missing_packets)
         png_path = None
         if plot_sink is not None and png is not None:
             png_path = render_png(png, plot_sink.bins(), replace(
-                plot_info, sample_rate=plot_sink.sample_rate, bin_rate=plot_sink.bin_rate), summary)
+                plot_info, sample_rate=plot_sink.sample_rate, bin_rate=plot_sink.bin_rate,
+                output_on=event.command_sent if event else None), summary)
         return CaptureResult(started=plot_info.started, duration=duration,
                              sample_rate=sinks[0].sample_rate, summary=summary,
                              csv_path=Path(csv).resolve() if csv is not None else None,
                              csv_rows=csv_sink.rows if csv_sink else 0,
                              csv_row_rate=csv_sink.row_rate if csv_sink else 0.0,
-                             png_path=png_path)
+                             png_path=png_path, power_on=event)
 
+    def _switch_on(self) -> None:
+        """Output on with the write first, then the read-back (REQ-SAFE-DEV-002)."""
+        self.set(Properties.MAIN_OUTPUT, True)
+        if not self.output_enabled:
+            raise ProtocolError("main output did not switch on")
+
+    def _switch_off_best_effort(self) -> None:
+        """Output off after a failed power-on recording; never raises a device error."""
+        try:
+            self.set(Properties.MAIN_OUTPUT, False)
+        except OtiiError as e:
+            log.warning("could not switch the main output off after the recording: %s", e)
 
 
 __all__ = ["MAIN_CHANNELS", "OtiiDevice"]

@@ -150,6 +150,7 @@ class TestReviewRegressions:
         assert annotations["set_output"].destructive_hint
         assert annotations["power_cycle"].destructive_hint
         assert not annotations["record"].read_only_hint
+        assert annotations["record"].destructive_hint           # power_on switches the output
 
     def test_mcp_power_cycle_rejects_nan(self):
         import anyio

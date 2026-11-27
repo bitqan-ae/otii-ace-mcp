@@ -194,6 +194,8 @@ class TestReviewRegressions:
             dev.set_output(True)
             dev.measure(0.02)
             dev.capture(0.02, csv=tmp_path / "a.csv", png=tmp_path / "a.png")
+            dev.set_output(False)
+            dev.capture(0.02, csv=tmp_path / "b.csv", power_on=True, pre_trigger=0.005)
             dev.power_cycle(0.01)
             dev.shutdown()
         sent = {r.command for r in simulator.requests}

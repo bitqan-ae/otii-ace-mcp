@@ -136,6 +136,7 @@ Otii ──1 ms packets──▶ Session ──DataPacket──▶ Recorder ─�
 | `REQ-MEAS-REC-001` | A recording shall write a CSV file with the columns `time_s,voltage_v,current_a,power_w`, averaged to a selectable row rate (default 1000 rows per second) or every sample; time from the packet sequence so that gaps stay visible; statistics over the full-rate samples; complete when interrupted. | Stated | Verified |
 | `REQ-MEAS-REC-002` | A recording shall render a PNG plot of voltage, current and power over a shared time axis, with the mean and the min/max band, titled with the device model and serial number. | Stated | Verified |
 | `REQ-MEAS-REC-003` | CSV and PNG shall be selectable individually or together, from one recording. | Stated | Verified |
+| `REQ-MEAS-REC-004` | A recording shall optionally switch the main output on inside the recording, so that the power-up is recorded: only with the output off at the start, after the first data packet and a selectable pre-trigger time (default 50 ms), with the write read back (`REQ-SAFE-DEV-002`). The time the switch-on command was sent (the end of the last data packet received before it) shall be reported on the recording's time axis, marked in the PNG plot and in an extra CSV column `output_on`; the output's own response is left to the recording. The output shall be off at the end and after every error; a switch-off by the device during the recording shall be reported. The command line, the shell and the MCP `record` tool shall offer it. | Stated | Verified |
 
 ### PROT-LINK: Protocol handling
 
@@ -169,6 +170,7 @@ How each *Verified* requirement was shown on a real Otii Ace Pro (`DC-HW-ACE-001
 | `REQ-MEAS-REC-001` | 2026-11-27 | `otii-usb record -t 3 --csv --png`: 3000 rows at 1000 rows/s, no missing packets; [`tests/test_csv.py`](../../tests/test_csv.py), [`tests/hardware/test_readonly.py`](../../tests/hardware/test_readonly.py) |
 | `REQ-MEAS-REC-002` | 2026-11-27 | the same run: plot titled with model and serial number, reviewed |
 | `REQ-MEAS-REC-003` | 2026-11-27 | the same run (both); one output each in `test_record_tool` |
+| `REQ-MEAS-REC-004` | 2026-11-27 | `test_power_on_recording` with a device under test at 5 V / 1 A: command marked at 50 ms, output off before it, no missing packets, output off afterwards; plot reviewed; [`tests/test_power_on.py`](../../tests/test_power_on.py), [`tests/hardware/test_power_on.py`](../../tests/hardware/test_power_on.py) |
 | `REQ-PROT-LINK-001` | 2026-11-27 | every hardware session; `TestFraming` |
 | `REQ-PROT-LINK-002` | 2026-11-27 | captured session in [protocol.md](protocol.md#13-a-complete-session); `TestSession` |
 
@@ -256,6 +258,7 @@ The wire protocol facts are in [protocol.md](protocol.md).
 | `DC-TOOL-TEST-004` | A test waits for what it waits for (a line of output, a state), not for a generous allowance of time. | Decided |
 | `DC-TOOL-TEST-005` | New and changed tests run by themselves first; a test that failed runs again by itself after its fix, before the whole suite. | Decided |
 | `DC-TOOL-TEST-006` | CI runs the offline suite and a simulator smoke test of the CLI on Python 3.12, 3.13 and 3.14. | Decided |
+| `DC-TOOL-TEST-007` | A hardware test that switches the main output on is marked `switches_output` and runs only with `--switch-output` in addition to `--hardware`; it starts from the safe state and ends with the device shut down. | Decided |
 
 ## Code review guideline
 

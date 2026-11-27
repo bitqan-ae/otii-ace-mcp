@@ -21,7 +21,8 @@
 # request() sends a command with a fresh transaction id and waits for the
 # response with that id; everything else that arrives meanwhile (sample data,
 # alerts) goes to listeners. pump() processes packets for a given time, sends
-# a keepalive ping every 0.5 s and reports progress. All blocking waits poll a
+# a keepalive ping every 0.5 s and reports progress; pump_until() does the
+# same until a condition holds or a timeout passes. All blocking waits poll a
 # cancel event every 50 ms, so another thread can abort a long operation
 # quickly when the program shuts down (REQ-SAFE-OUT-004). handshake()
 # establishes binary mode, falling back to a text-mode wake-up line between
@@ -119,6 +120,11 @@ class Session:
     def transport(self) -> Transport:
         return self._transport
 
+    @property
+    def timeout(self) -> float:
+        """Default time limit for a response [s]."""
+        return self._timeout
+
     # ------------------------------------------------------------ lifecycle
 
     def close(self) -> None:
@@ -197,6 +203,18 @@ class Session:
                 self._dispatch(packet)
         if progress is not None:
             progress(duration, duration)
+
+    def pump_until(self, condition: Callable[[], bool], timeout: float) -> bool:
+        """Dispatch packets until ``condition()`` holds; False if ``timeout`` s pass first."""
+        deadline = time.monotonic() + timeout
+        while not condition():
+            if (now := time.monotonic()) >= deadline:
+                return False
+            self._keepalive_if_due(now)
+            packet = self._next_packet(min(deadline, now + self._keepalive_interval))
+            if packet is not None:
+                self._dispatch(packet)
+        return True
 
     def _keepalive_if_due(self, now: float) -> None:
         if now - self._last_keepalive >= self._keepalive_interval:

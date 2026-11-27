@@ -1,0 +1,29 @@
+[1m[38;2;34;211;238m  ___   _____  ___  ___        _      ____  _____[0m
+[1m[38;2;56;189;248m / _ \ |_   _||_ _||_ _|      / \    / ___|| ____|[0m
+[1m[38;2;96;165;250m| | | |  | |   | |  | |      / _ \  | |    |  _|[0m
+[1m[38;2;129;140;248m| |_| |  | |   | |  | |     / ___ \ | |___ | |___[0m
+[1m[38;2;167;139;250m \___/   |_|  |___||___|   /_/   \_\ \____||_____|[0m
+[1m  Otii Ace Pro[0m[38;5;244m  ·  [38;5;249mUSB control & measurement[38;5;244m  ·  otii-usb 0.1.0[39m
+[38;5;244m  type 'help' for commands, Tab to complete, Ctrl-D to exit[39m
+
+[36mOtii Ace Pro[39m  [38;5;244mS/N <serial> · board <board serial> · fw 3.2.5 · protocol 3 · /dev/ttyACM0[39m
+[32m✔[39m safe state: outputs [1m[32mOFF[0m, 5 V setpoint, 500 mA limit
+
+[1m[38;5;45motii[0m [38;5;243mAce Pro[39m [1m[38;5;78m○ OFF[38;5;141m ❯ [38;5;45msafe[0m [38;5;141m--current-limit[39m [38;5;214m2[39m
+[32m✔[39m [1msafe state applied[0m
+[38;5;249m     main output  [1m[32mOFF[0m
+[38;5;249mexpansion output  [1m[37m0 V[0m
+[38;5;249mvoltage setpoint  [1m[37m5.0000 V[0m
+[38;5;249m   current limit  [1m[37m2.0000 A[0m
+[1m[38;5;45motii[0m [38;5;243mAce Pro[39m [1m[38;5;78m○ OFF[38;5;141m ❯ [38;5;45mrecord[0m [38;5;141m--png[39m [38;5;254mZeSDR-boot.png[39m [38;5;141m-t[39m [38;5;214m2[39m [38;5;141m--power-on[39m [38;5;141m--pre[39m [38;5;214m0[39m [38;5;141m--raw[39m [38;5;141m--title[39m [38;5;254m"ZeSDR[39m [38;5;254mZynq-7000[39m [38;5;254mBoot[39m [38;5;254mProcess"[39m [38;5;141m--serial[39m [38;5;254m/dev/ttyUSB0[39m
+[32m✔[39m [1mrecorded 2 s[0m
+[38;5;249mpower on  [1m[37mswitch-on sent at 1 ms, output OFF after[0m
+[38;5;249m     png  [1m[37m~/ZeSDR-boot.png[0m
+[38;5;249m  serial  [1m[37m/dev/ttyUSB0 at 115200 Bd: 3 lines, 108 bytes, open from 475 ms[0m
+[38;5;244mchannel            avg            min            max            std    samples[39m
+[36mmv[39m            [1m[37m4.9662 V[0m      2.3290 mV       5.0246 V    383.2289 mV    100,000
+[36mmc[39m         [1m[37m321.4620 mA[0m    -22.3301 mA    459.7442 mA     50.4074 mA    100,000
+[36mmp[39m            [1m[37m1.6066 W[0m     -4.5200 mW       2.2951 W    254.8690 mW    100,000
+[1m[38;5;45motii[0m [38;5;243mAce Pro[39m [1m[38;5;78m○ OFF[38;5;141m ❯ [0m[38;5;45mexit[39m
+[38;5;244mswitching outputs off ...[39m
+[32m✔[39m outputs [1m[32mOFF[0m, defaults restored. bye.

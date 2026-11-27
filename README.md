@@ -23,7 +23,28 @@ scripts, CI pipelines, lab test benches, and AI agents that debug hardware on th
 > device on connection and refuses to operate any other device type, protocol or firmware
 > version.
 
-![Example recording](docs/images/example-record.png)
+![Power-up of a Zynq-7000 board with its serial console](docs/images/example-usage.png)
+
+The power-up of a Zynq-7000 board at 5 V with a 2 A current limit, recorded in the interactive
+shell (serial numbers and paths masked):
+
+![The interactive session that recorded it](docs/images/session.png)
+
+The bottom panel lines the board's console up with its power on one time axis, so each boot
+stage can be read off against the current it draws. The boot loader reports at 0.647 s that it
+loaded the 4.9 MB kernel image in 393 ms: the plateau of about 1.65 W before it is that load. The
+kernel's own `init at 0.14 s`, arriving at 0.917 s, puts the kernel start at about 0.78 s, where
+the power rises and turns busy; the shell prompt at 0.947 s shows the console up. From about
+1.52 s the board settles at around 1.45 W. The faint orange steps behind the text show how many
+characters per second arrived (right axis).
+
+The board's USB serial adapter is powered by the board itself, so `/dev/ttyUSB0` does not exist
+until the output is switched on, and it disappears again when it goes off. `otii-usb` therefore
+looks for the port every 5 ms during the recording and opens it the moment it appears, here
+475 ms after the switch-on (the shaded part of the panel); after a disconnect it waits for the
+port to come back. It joins while the board is already printing: whatever was sent before is
+lost, and the first printable character after the port opened starts a line. Arrival times are
+measured on the host and placed on the Otii's time axis to about a millisecond.
 
 ## Why
 
@@ -103,17 +124,15 @@ contains it). The output then ramps up a few milliseconds later; the recording s
 
 `record --serial PORT` (with `--baud RATE`, default 115200, 8N1) reads the serial console of the
 device under test during the recording and adds a fourth panel below the voltage, labelled with
-the port. Each line is marked by a faint vertical line at the arrival of its first printable
+the port; the example at the top shows one, and how a port that appears only with the power is
+found. Each line is marked by a faint vertical line at the arrival of its first printable
 character, with the arrival time (bold green) and the received text (black) written upwards behind
 the marker. Behind the text, a faint orange distribution shows the printable characters per second
 (right axis, topped by the busiest of 250 bins over the recording). Labels never overlap: a line
 close to the previous marker gets no marker of its own but follows that marker's label in the next
 column, with its own arrival time, as long as it ends before the next marker; lines that do not
 fit are left out, and the note at the bottom left says how many lines are shown. The port is only
-read, never written. A USB serial adapter powered by the device under test only appears after the
-switch-on; it is polled for every 5 ms and opened as soon as it appears, and the time before is
-shaded. Text sent before the port opened is lost. The result reports the line count and when the
-port was open.
+read, never written. The result reports the line count and when the port was open.
 
 ## Interactive mode
 
@@ -267,17 +286,6 @@ with OtiiDevice.open() as otii:
     otii.stream(sink, 5.0)
     print(f"peak current {sink.peak * 1e3:.3f} mA")
 ```
-
-## Protocol
-
-The device speaks a compact binary protocol over its USB serial port: framed messages with a
-16-bit checksum, request/response transactions, and one data packet per millisecond while
-recording. [docs/contributor/protocol.md](docs/contributor/protocol.md) explains every byte with colour-coded dumps of
-real traffic.
-
-![Frame anatomy](docs/images/png/protocol-frame.png)
-
-![Data packet](docs/images/png/protocol-data-packet.png)
 
 ## Safety
 

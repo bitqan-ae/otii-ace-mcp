@@ -25,7 +25,7 @@ src/otii_usb/
 tests/            offline suite (simulator); tests/hardware/ needs --hardware
 docs/contributor/ design.md (requirements, constraints, review guideline), protocol.md
 docs/images/      SVG originals; png/ holds the rendered copies
-docs/tools/       protocol_figures.py regenerates the protocol figures
+docs/tools/       protocol_figures.py and session_figure.py regenerate the figures
 ```
 
 ## Setup and commands
@@ -38,6 +38,7 @@ python -m pytest --hardware --switch-output tests/hardware  # also tests that po
 otii-usb --simulate -i                    # interactive shell against the simulator
 otii-usb --debug status                   # every frame as hex
 python docs/tools/protocol_figures.py     # regenerate protocol SVGs and PNGs
+python docs/tools/session_figure.py       # redraw the README's session from its capture
 ```
 
 ## Rules in short

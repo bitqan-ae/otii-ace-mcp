@@ -20,7 +20,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Tools: status, measure, record (CSV and/or PNG into the output directory,
-# optionally switching the output on inside the recording, REQ-MEAS-REC-004),
+# optionally switching the output on inside the recording, REQ-MEAS-REC-004,
+# with an optional plot title and footer, REQ-MEAS-REC-005, -007),
 # set_output and power_cycle (REQ-UI-MCP-001); power_cycle always ends with
 # the output on and says so (REQ-SAFE-OUT-008). Reads are annotated read-only,
 # output switching (also record) destructive, so clients ask before switching power
@@ -57,6 +58,7 @@ from ..device.models import SafeDefaults
 from ..device.otii import OtiiDevice
 from ..errors import OtiiError, UnsupportedDeviceError
 from ..measurement.stats import MeasurementSummary
+from ..report.plot import DEFAULT_FOOTER
 from .gateway import DeviceGateway
 from .lifecycle import SafeExit
 from .monitor import EventQueue, OvercurrentMonitor
@@ -137,11 +139,14 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
                                              idempotent_hint=False))
     async def record(duration_s: float = 10.0, csv: bool = True, png: bool = True,
                      rate_hz: float | None = 1000.0, name: str | None = None,
-                     power_on: bool = False, pre_trigger_s: float = 0.05) -> dict:
+                     power_on: bool = False, pre_trigger_s: float = 0.05,
+                     title: str | None = None, footer: str | None = None) -> dict:
         """Record main voltage [V], current [A] and power [W] for duration_s seconds
         (0.01..600) into the server's output directory: a CSV file (columns time_s, voltage_v,
         current_a, power_w; rate_hz rows per second averaged, 1..50000, null = every sample)
-        and/or a PNG plot over time titled with the Otii model. Select csv and png
+        and/or a PNG plot over time titled with the Otii model and serial number, or with
+        title (plain text, at most 200 characters), with a grey project note at the bottom
+        right: footer replaces it (same limits), footer="" leaves it out. Select csv and png
         individually or together (at least one). name: plain file name without suffix
         (default: timestamped). Returns the absolute paths and avg/min/max/std per channel.
         power_on=true powers the device under test: the main output must be off; it is
@@ -153,6 +158,11 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
         duration = clamp(duration_s, 0.01, 600.0, "duration_s")
         rate = None if rate_hz is None else clamp(rate_hz, 1.0, 50_000.0, "rate_hz")
         pre = clamp(pre_trigger_s, 0.0, 10.0, "pre_trigger_s")
+        heading = (title or "").strip() or None
+        note = DEFAULT_FOOTER if footer is None else footer.strip() or None
+        for label, text in (("title", heading), ("footer", note)):
+            if text is not None and len(text) > 200:
+                raise RuntimeError(f"{label}: at most 200 characters")
         try:
             stem = outputs.stem(name)
         except (ValueError, OSError) as e:
@@ -161,7 +171,8 @@ def create_server(gateway: DeviceGateway, output_dir: OutputDirectory | None = N
         def action(d: OtiiDevice) -> tuple[dict, MeasurementSummary]:
             result = d.capture(duration, csv=stem.with_suffix(".csv") if csv else None,
                                png=stem.with_suffix(".png") if png else None, row_rate=rate,
-                               power_on=power_on, pre_trigger=pre)
+                               power_on=power_on, pre_trigger=pre, title=heading,
+                               footer=note)
             data = result.to_dict()
             if result.power_on is not None and (warning := result.power_on.warning):
                 data["power_on"]["warning"] = warning

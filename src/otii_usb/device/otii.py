@@ -55,7 +55,7 @@ from ..errors import OtiiError, ProtocolError
 from ..measurement.csv_log import DEFAULT_ROW_RATE, ColumnSink, CsvSink
 from ..measurement.recorder import Recorder, StreamResult, Trigger
 from ..measurement.sinks import SampleSink, TeeSink
-from ..report.plot import PlotInfo, PlotSink, render_png
+from ..report.plot import DEFAULT_FOOTER, PlotInfo, PlotSink, render_png
 from ..measurement.recording import Recording
 from ..measurement.stats import MeasurementSummary
 from ..protocol.constants import ChannelId, Command
@@ -289,7 +289,9 @@ class OtiiDevice:
     def capture(self, duration: float, *, csv: str | Path | None = None,
                 png: str | Path | None = None, row_rate: float | None = DEFAULT_ROW_RATE,
                 progress: ProgressCallback | None = None, power_on: bool = False,
-                pre_trigger: float = DEFAULT_PRE_TRIGGER) -> CaptureResult:
+                pre_trigger: float = DEFAULT_PRE_TRIGGER,
+                title: str | None = None,
+                footer: str | None = DEFAULT_FOOTER) -> CaptureResult:
         """Record voltage, current and power to a CSV file and/or a PNG plot.
 
         Both outputs are fed from the same recording. ``row_rate`` CSV rows per second
@@ -300,6 +302,9 @@ class OtiiDevice:
         into the recording (``duration`` includes them) and off again at the end and on any
         error. When the switch-on command was sent (the end of the last data packet received
         before it) is marked in the CSV (column ``output_on``) and the plot.
+
+        ``title`` replaces the plot's default title (model and serial number); ``footer``
+        the grey project note at its bottom right, ``None`` for none.
         """
         if duration <= 0:
             raise ValueError("duration must be positive")
@@ -313,7 +318,8 @@ class OtiiDevice:
         plot_info = PlotInfo(model=self.model, serial_number=self.get(Properties.SERIAL_NUMBER),
                              firmware=self.firmware_version, started=datetime.now().astimezone(),
                              duration=duration, sample_rate=0, bin_rate=0.0,
-                             voltage_setpoint=self.voltage_setpoint)
+                             voltage_setpoint=self.voltage_setpoint, title=title,
+                             footer=footer)
         sent: list[float] = []          # when the switch-on command was sent
 
         def switch_on(at: float) -> None:

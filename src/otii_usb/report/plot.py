@@ -19,15 +19,19 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # PlotSink bins the recording to about 4000 points (mean, min, max).
-# render_png draws three panels sharing the time axis: the mean as a line
+# render_png draws three panels sharing the time axis, power on top, then
+# current and voltage (REQ-MEAS-REC-006): the mean as a line
 # and min/max as a translucent band, so short spikes stay visible at any
-# zoom. The title names the Otii model and serial number; below it the
-# start time, duration, setpoint, sample and plot rates and firmware.
-# Axes use engineering prefixes (mA, µs, ...). A power-on recording marks
-# when the switch-on command was sent with a dashed line (REQ-MEAS-REC-004).
-# The figure is built with
-# the object API and the Agg canvas, without pyplot's global state, so it
-# can be rendered from the MCP server's worker threads (REQ-MEAS-REC-002).
+# zoom. The title names the Otii model and serial number unless the caller
+# gives one (REQ-MEAS-REC-005), drawn as plain text and stored as the PNG's
+# Title; below it the start time, duration, setpoint, sample and plot rates
+# and firmware. Axes use engineering prefixes (mA, µs, ...). A power-on
+# recording marks when the switch-on command was sent with a dashed line
+# (REQ-MEAS-REC-004). A grey footer at the bottom right names the project
+# unless the caller replaces or suppresses it (REQ-MEAS-REC-007).
+# The figure is built with the object API and the Agg canvas, without
+# pyplot's global state, so it can be rendered from the MCP server's
+# worker threads (REQ-MEAS-REC-002).
 
 """Measurement plots: voltage, current and power over time, rendered to PNG."""
 import math
@@ -51,11 +55,12 @@ if TYPE_CHECKING:
     from ..device.channels import ChannelInfo
 
 DEFAULT_POINTS = 4000
+DEFAULT_FOOTER = "created with github.com/bitqan-ae/otii-ace-mcp"
 
-_PANELS = (  # label, unit, colour
-    ("Voltage", "V", "#4f46e5"),
-    ("Current", "A", "#0d9488"),
-    ("Power", "W", "#d97706"),
+_PANELS = (  # top to bottom: column in MAIN_COLUMNS, label, unit, colour
+    (2, "Power", "W", "#d97706"),
+    (1, "Current", "A", "#0d9488"),
+    (0, "Voltage", "V", "#4f46e5"),
 )
 _INK, _MUTED, _GRID, _PAPER = "#1f2937", "#6b7280", "#e5e7eb", "#ffffff"
 
@@ -106,6 +111,14 @@ class PlotInfo:
     voltage_setpoint: float | None = None
     output_on: float | None = None
     """When the switch-on command was sent [s on the time axis], marked with a dashed line."""
+    title: str | None = None
+    """Replaces the default title, model and serial number."""
+    footer: str | None = DEFAULT_FOOTER
+    """Grey text at the bottom right; None for none."""
+
+    @property
+    def heading(self) -> str:
+        return self.title or f"{self.model}  ·  S/N {self.serial_number}"
 
 
 def _rate(hz: float) -> str:
@@ -113,14 +126,15 @@ def _rate(hz: float) -> str:
 
 
 def render_png(path: str | Path, bins: Bins, info: PlotInfo, summary: MeasurementSummary) -> Path:
-    """Render three stacked panels (V, I, P) sharing the time axis; returns the path."""
+    """Render three stacked panels (P, I, V) sharing the time axis; returns the path."""
     path = Path(path)
     fig = Figure(figsize=(12, 8.5), dpi=150, facecolor=_PAPER, layout="constrained")
     FigureCanvasAgg(fig)
     axes = fig.subplots(3, 1, sharex=True)
     stats = (summary.voltage, summary.current, summary.power)
 
-    for i, (ax, (label, unit, colour), st) in enumerate(zip(axes, _PANELS, stats)):
+    for row, (ax, (i, label, unit, colour)) in enumerate(zip(axes, _PANELS)):
+        st = stats[i]
         ax.set_facecolor(_PAPER)
         if len(bins):
             if np.any(bins.maximum[:, i] > bins.minimum[:, i]):
@@ -146,7 +160,7 @@ def render_png(path: str | Path, bins: Bins, info: PlotInfo, summary: Measuremen
                     transform=ax.transAxes, ha="right", va="top", fontsize=9, color=_INK,
                     bbox={"boxstyle": "round,pad=0.4", "facecolor": _PAPER,
                           "edgecolor": _GRID, "alpha": 0.9})
-        if i == 0:
+        if row == 0:
             ax.legend(loc="upper left", frameon=False, fontsize=8, labelcolor=_MUTED, ncols=4)
 
     axes[-1].xaxis.set_major_formatter(EngFormatter(unit="s", sep=" "))
@@ -154,8 +168,8 @@ def render_png(path: str | Path, bins: Bins, info: PlotInfo, summary: Measuremen
     if info.duration > 0:
         axes[-1].set_xlim(0, info.duration)
 
-    fig.suptitle(f"{info.model}  ·  S/N {info.serial_number}", x=0.01, ha="left",
-                 fontsize=16, fontweight="bold", color=_INK)
+    fig.suptitle(info.heading, x=0.01, ha="left", fontsize=16, fontweight="bold",
+                 color=_INK, parse_math=False)
     details = [info.started.strftime("%Y-%m-%d %H:%M:%S %Z").strip(),
                f"{info.duration:g} s", f"{_rate(info.sample_rate)} sampled",
                f"plotted at {_rate(info.bin_rate)} (mean, min/max band)", f"fw {info.firmware}"]
@@ -164,5 +178,8 @@ def render_png(path: str | Path, bins: Bins, info: PlotInfo, summary: Measuremen
     if summary.missing_packets:
         details.append(f"{summary.missing_packets} packets missing")
     axes[0].set_title("   ·   ".join(details), loc="left", fontsize=9.5, color=_MUTED, pad=14)
-    fig.savefig(path, facecolor=_PAPER)
+    if info.footer:
+        fig.text(0.995, 0.004, info.footer, ha="right", va="bottom", fontsize=8,
+                 color=_MUTED, parse_math=False)
+    fig.savefig(path, facecolor=_PAPER, metadata={"Title": info.heading})
     return path.resolve()

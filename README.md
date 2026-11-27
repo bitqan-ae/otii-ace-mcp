@@ -79,6 +79,8 @@ otii-usb measure -t 2                    # 2 s average/min/max of voltage, curre
 otii-usb record -t 60                    # 60 s to otii-<timestamp>.csv and .png
 otii-usb record -t 10 --csv run.csv      # CSV only (1000 averaged rows per second)
 otii-usb record -t 5 --png boot.png      # plot only
+otii-usb record --png --title "Sensor board, boot"   # own plot title (default: model and S/N)
+otii-usb record --png --footer "ACME lab"   # own note at the bottom right; --no-footer for none
 otii-usb record -t 2 --csv fast.csv --raw   # every sample (50 kHz)
 otii-usb record -t 1 --power-on          # output on 50 ms into the recording: the power-up
 otii-usb output on | off                 # switch the main output
@@ -152,6 +154,7 @@ measure -t 0.1                         quick 100 ms reading
 record                                 10 s, CSV and PNG with timestamped names
 record -t 60 --csv --png               both outputs, timestamped names
 record --csv slow.csv --rate 10        10 averaged rows per second
+record --png a.png --title "Board A"   plot titled "Board A"; each record takes its own title
 safe --voltage 3.3 --current-limit 0.1 outputs off, then 3.3 V and 100 mA
 clear                                  clear the screen
 ```
@@ -189,7 +192,7 @@ is opened in this directory. Other MCP clients start the same command over stdio
 |---|---|
 | `status` | model, serial number, firmware, output state, voltage setpoint, current limit |
 | `measure(duration_s)` | avg/min/max/std of voltage, current and power (≤ 10 s) |
-| `record(duration_s, csv, png, rate_hz, name, power_on, pre_trigger_s)` | CSV and/or PNG plot in the output directory (≤ 600 s); `power_on` switches the output on inside the recording and off at the end (marked destructive) |
+| `record(duration_s, csv, png, rate_hz, name, power_on, pre_trigger_s, title, footer)` | CSV and/or PNG plot in the output directory (≤ 600 s); `title` replaces the plot's default title, `footer` its project note (`""` for none); `power_on` switches the output on inside the recording and off at the end (marked destructive) |
 | `set_output(on)` | switch the main output (marked destructive) |
 | `power_cycle(off_s)` | off, wait, on; always ends on (marked destructive) |
 

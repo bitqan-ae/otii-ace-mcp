@@ -38,6 +38,7 @@ from ..device.otii import DEFAULT_PRE_TRIGGER, OtiiDevice
 from ..measurement.csv_log import DEFAULT_ROW_RATE
 from ..measurement.stats import MeasurementSummary
 from ..protocol.session import ProgressCallback
+from ..report.plot import DEFAULT_FOOTER
 
 AUTO = "auto"
 
@@ -116,7 +117,8 @@ def _record_paths(args: argparse.Namespace) -> tuple[Path | None, Path | None]:
 def run_record(dev: OtiiDevice, args: argparse.Namespace, progress) -> CommandResult:
     csv, png = _record_paths(args)
     result = dev.capture(args.time, csv=csv, png=png, row_rate=None if args.raw else args.rate,
-                         progress=progress, power_on=args.power_on, pre_trigger=args.pre)
+                         progress=progress, power_on=args.power_on, pre_trigger=args.pre,
+                         title=args.title, footer=args.footer)
     fields = []
     warnings = [w for w in (_missing(result.summary),
                             result.power_on.warning if result.power_on else None) if w]
@@ -171,6 +173,12 @@ def _not_negative(value: str) -> float:
     return number
 
 
+def _text(value: str) -> str:
+    if not (text := value.strip()):
+        raise argparse.ArgumentTypeError("must not be empty")
+    return text
+
+
 def _time_option(default: float, what: str) -> Callable[[argparse.ArgumentParser], None]:
     def configure(parser: argparse.ArgumentParser) -> None:
         parser.add_argument("-t", "--time", type=_positive, default=default, metavar="SECONDS",
@@ -184,6 +192,14 @@ def _configure_record(parser: argparse.ArgumentParser) -> None:
                         help="write a CSV file (default name: otii-<timestamp>.csv)")
     parser.add_argument("--png", nargs="?", const=AUTO, metavar="FILE",
                         help="write a PNG plot (default name: otii-<timestamp>.png)")
+    parser.add_argument("--title", type=_text, metavar="TEXT",
+                        help="plot title (default: Otii model and serial number)")
+    footer = parser.add_mutually_exclusive_group()
+    footer.add_argument("--footer", type=_text, default=DEFAULT_FOOTER, metavar="TEXT",
+                        help=f'grey note at the bottom right of the plot '
+                             f'(default "{DEFAULT_FOOTER}")')
+    footer.add_argument("--no-footer", dest="footer", action="store_const", const=None,
+                        help="plot without the note")
     rate = parser.add_mutually_exclusive_group()
     rate.add_argument("--rate", type=_positive, default=DEFAULT_ROW_RATE, metavar="HZ",
                       help=f"CSV rows per second, averaged (default {DEFAULT_ROW_RATE:g})")
@@ -229,15 +245,19 @@ COMMANDS: tuple[Command, ...] = (
     Command("record", "record voltage, current and power to CSV and/or a PNG plot",
             "Records the main channels for --time seconds. --csv writes time_s, voltage_v, "
             "current_a, power_w rows (averaged to --rate rows per second, or every sample with "
-            "--raw); --png renders a plot over time titled with the Otii model. Both outputs "
-            "come from the same recording. Without --csv/--png both are written with "
-            "timestamped names. --power-on switches the main output on --pre seconds into the "
-            "recording, so the power-up is recorded, and off at the end (also on errors); the "
-            "time the command was sent is marked in the plot and in the CSV column output_on.",
+            "--raw); --png renders a plot over time titled with the Otii model and serial "
+            "number, or with --title, and a grey project note at the bottom right (--footer "
+            "replaces it, --no-footer leaves it out). Both outputs come from the same "
+            "recording. Without --csv/--png both are written with timestamped names. "
+            "--power-on switches the main output on --pre seconds into the recording, so the "
+            "power-up is recorded, and off at the end (also on errors); the time the command "
+            "was sent is marked in the plot and in the CSV column output_on.",
             run_record, examples=(
                 ("record", "10 s to otii-<timestamp>.csv and .png"),
                 ("record -t 60 --csv run.csv", "only a CSV, 60 s, 1000 rows/s"),
                 ("record -t 5 --png boot.png", "only a plot"),
+                ('record -t 5 --png --title "Sensor board, boot"', "plot with your own title"),
+                ('record -t 5 --png --footer "ACME lab, bench 3"', "own note at the bottom right"),
                 ("record -t 30 --csv --png", "both, timestamped names"),
                 ("record -t 2 --csv fast.csv --raw", "every sample (50 kHz)"),
                 ("record --csv slow.csv --rate 10", "10 averaged rows per second"),

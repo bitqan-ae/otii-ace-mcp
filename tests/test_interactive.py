@@ -18,7 +18,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Commands, help, error handling, the output state in the prompt, Ctrl-C
+# Commands, recordings with their own plot titles in sequence
+# (REQ-MEAS-REC-005), help, error handling, the output state in the prompt, Ctrl-C
 # during a command (REQ-SAFE-OUT-006), the lexer's highlighting, completion, a
 # full scripted session through prompt_toolkit that must end with the outputs
 # off (REQ-SAFE-OUT-002), and refusal of unsupported devices
@@ -94,6 +95,14 @@ def test_output_state_tracked_for_prompt(shell):
 def test_record_both_outputs(shell, tmp_path):
     shell.execute(f"record -t 0.05 --csv {tmp_path}/a.csv --png {tmp_path}/a.png")
     assert (tmp_path / "a.csv").exists() and (tmp_path / "a.png").exists()
+
+
+def test_record_titles_in_sequence(shell, tmp_path):
+    from PIL import Image
+    for n, title in enumerate(("Board A, idle", "Board A, boot")):
+        shell.execute(f'record -t 0.05 --png {tmp_path}/{n}.png --title "{title}"')
+        with Image.open(tmp_path / f"{n}.png") as image:
+            assert image.text["Title"] == title
 
 
 def test_help_lists_every_command(shell):

@@ -21,6 +21,6 @@
 # PlotSink collects a recording for plotting; render_png draws it.
 
 """Reports: measurement plots."""
-from .plot import DEFAULT_POINTS, PlotInfo, PlotSink, render_png
+from .plot import DEFAULT_FOOTER, DEFAULT_POINTS, PlotInfo, PlotSink, render_png
 
-__all__ = ["DEFAULT_POINTS", "PlotInfo", "PlotSink", "render_png"]
+__all__ = ["DEFAULT_FOOTER", "DEFAULT_POINTS", "PlotInfo", "PlotSink", "render_png"]

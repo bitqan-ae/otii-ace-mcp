@@ -1,3 +1,18 @@
+[![CI](https://github.com/bitqan-ae/otii-ace-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bitqan-ae/otii-ace-mcp/actions/workflows/ci.yml?query=branch%3Amain)
+
+> [!WARNING]
+> **Unofficial software.** This is an independent project. It is not affiliated with, endorsed,
+> sponsored or supported by Qoitech AB. *Qoitech* and *Otii* are names of Qoitech AB, used here
+> only to identify the hardware this software works with. For official software and support,
+> contact Qoitech.
+>
+> **Use at your own risk.** This software switches electrical power to connected equipment. It
+> is provided "as is", without warranty of any kind, express or implied (see sections 7 and 8 of
+> the [Apache License 2.0](LICENSE)). You are solely responsible for its use and for any damage
+> or loss that results, including damage to the instrument, to devices under test or to other
+> equipment, loss of data, or injury. Check its behaviour with your own setup before relying on
+> it.
+
 # otii-ace-mcp
 
 Python driver, interactive CLI and MCP server for the **Qoitech Otii Ace Pro** power analyzer.
@@ -5,7 +20,8 @@ It talks to the device directly over USB and turns it into a building block for 
 scripts, CI pipelines, lab test benches, and AI agents that debug hardware on their own.
 
 > **Tested device:** Otii Ace Pro (hardware rev 2, firmware 3.2.5). The driver identifies the
-> device on connection and refuses to operate anything it has not been tested with.
+> device on connection and refuses to operate any other device type, protocol or firmware
+> version.
 
 ![Example recording](docs/images/example-record.png)
 
@@ -94,7 +110,7 @@ Example session (values depend on your device under test):
  \___/   |_|  |___||___|   /_/   \_\ \____||_____|
   Otii Ace Pro  ·  USB control & measurement  ·  otii-usb 0.1.0
 
-Otii Ace Pro  S/N <serial> · fw 3.2.5 · /dev/ttyACM0
+Otii Ace Pro  S/N <serial> · board <board serial> · fw 3.2.5 · protocol 3 · /dev/ttyACM0
 ✔ safe state: outputs OFF, 5 V setpoint, 500 mA limit
 
 otii Ace Pro ○ OFF ❯ output on
@@ -108,8 +124,8 @@ mp        61.5922 mW   59.8094 mW   63.8817 mW  487.2 µW    100,050
 otii Ace Pro ● ON ❯ record -t 30 --csv boot.csv --png boot.png
 | recording ━━━━━━━━━━━━━━━━━━╸━━━━━━━━━━━━━━━━━━  52% 0:00:15 eta 0:00:14
 ✔ recorded 30 s
-  csv  /home/me/boot.csv  (30001 rows, 1000 rows/s)
-  png  /home/me/boot.png
+  csv  ~/boot.csv  (30001 rows, 1000 rows/s)
+  png  ~/boot.png
 otii Ace Pro ● ON ❯ power-cycle -o 2
 ✔ main output ON -> OFF for 2 s -> ON
 otii Ace Pro ● ON ❯ help record
@@ -135,6 +151,15 @@ clear                                  clear the screen
 Ctrl-C at the prompt clears the line; during a command it stops the command and switches the
 outputs off. `exit`, `quit` or Ctrl-D leave the shell with the outputs off.
 
+While the shell is idle it polls the device once per second (`--poll SECONDS`, `0` = off) and
+warns in **bold red** when the current reaches the current limit or the device switches the
+output off by itself, and in yellow above 90 % of the limit:
+
+```text
+⚠ 14:02:17  OVERCURRENT: peak 500.0000 mA reached the current limit 500.0000 mA (polled)
+⚠ 14:02:18  main output was switched OFF by the device, not by otii-usb (current limit or protection tripped?)
+```
+
 ## MCP server
 
 ```sh
@@ -149,7 +174,7 @@ Register it with Claude Code (from the repository, with the venv set up):
 claude mcp add otii -- "$PWD/.venv/bin/otii-usb-mcp"
 ```
 
-or use the `.mcp.json` in this repository, which starts `.venv/bin/otii-usb-mcp` when Claude Code
+or use the [`.mcp.json`](.mcp.json) in this repository, which starts `.venv/bin/otii-usb-mcp` when Claude Code
 is opened in this directory. Other MCP clients start the same command over stdio.
 
 | Tool | What it does |
@@ -162,7 +187,8 @@ is opened in this directory. Other MCP clients start the same command over stdio
 
 At start-up and at shutdown (client disconnect, Ctrl-C, SIGTERM, SIGHUP) the server switches the
 main and expansion-port outputs off and sets 5 V / 500 mA. A tool that is still running is
-cancelled first.
+cancelled first. The server logs the device's identity at start-up and polls it for
+overcurrent while idle; warnings are added to the next tool result as `warnings`.
 
 ## Python API
 
@@ -186,6 +212,7 @@ with OtiiDevice.open() as otii:               # auto-detects the device, checks 
 Extending it, for example with a new device setting:
 
 ```python
+from otii_usb import OtiiDevice
 from otii_usb.device import PropertySpec, ScaledIntCodec
 from otii_usb.protocol import PropertyId
 
@@ -215,16 +242,32 @@ with OtiiDevice.open() as otii:
     print(f"peak current {sink.peak * 1e3:.3f} mA")
 ```
 
+## Protocol
+
+The device speaks a compact binary protocol over its USB serial port: framed messages with a
+16-bit checksum, request/response transactions, and one data packet per millisecond while
+recording. [docs/contributor/protocol.md](docs/contributor/protocol.md) explains every byte with colour-coded dumps of
+real traffic.
+
+![Frame anatomy](docs/images/png/protocol-frame.png)
+
+![Data packet](docs/images/png/protocol-data-packet.png)
+
 ## Safety
 
-* Only the tested device (Otii Ace Pro, firmware 3.2.x) is operated; identification only reads.
+* Only the tested device (Otii Ace Pro, firmware 3.2.5) is operated; identification only reads.
 * Safe state (main and expansion outputs off, 5 V, 500 mA) when the MCP server or interactive
   shell starts, and on every exit; Ctrl-C/SIGTERM/SIGHUP switch the outputs off within
   milliseconds, also while a long recording runs.
 * Only explicitly writable settings can be changed, and every change is read back.
+* Overcurrent protection is done by the Otii itself: when the main output current reaches the
+  current limit, the device acts on its own (limiting or switching off, according to its
+  current-limit mode). `otii-usb` sets the limit (500 mA by default) and reports when it is
+  reached or when the device switched the output off; it does not switch it off itself.
 
-The full list of numbered safety and design requirements, the architecture and the protocol
-reference are in [docs/design.md](docs/design.md).
+The numbered safety and design requirements and the architecture are in
+[docs/contributor/design.md](docs/contributor/design.md); the protocol is explained in
+[docs/contributor/protocol.md](docs/contributor/protocol.md).
 
 ## Development
 

@@ -1,0 +1,252 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="683" viewBox="0 0 900 683">
+  <title>Property update packet (observed)</title>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/></marker></defs>
+  <rect width="900" height="683" rx="14" fill="#ffffff"/>
+  <text x="30.0" y="40.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" fill="#111827" font-weight="700" text-anchor="start">Property update (observed, not used by the driver)</text>
+  <text x="30.0" y="63.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#6b7280" font-weight="normal" text-anchor="start">Unsolicited packets of type 0xff2ff2ce; most are empty, some carry a list of records.</text>
+  <text x="30.0" y="103.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6b7280" font-weight="600" text-anchor="start">header</text>
+  <text x="148.0" y="103.0" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#9ca3af" font-weight="normal" text-anchor="end" xml:space="preserve">0000</text>
+  <rect x="160.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#ede9fe" stroke="none" stroke-width="1.0"/>
+  <text x="175.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#6d28d9" font-weight="600" text-anchor="middle" xml:space="preserve">ce</text>
+  <rect x="193.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#ede9fe" stroke="none" stroke-width="1.0"/>
+  <text x="208.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#6d28d9" font-weight="600" text-anchor="middle" xml:space="preserve">f2</text>
+  <rect x="226.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#ede9fe" stroke="none" stroke-width="1.0"/>
+  <text x="241.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#6d28d9" font-weight="600" text-anchor="middle" xml:space="preserve">2f</text>
+  <rect x="259.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#ede9fe" stroke="none" stroke-width="1.0"/>
+  <text x="274.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#6d28d9" font-weight="600" text-anchor="middle" xml:space="preserve">ff</text>
+  <line x1="162.0" y1="117.0" x2="287.0" y2="117.0" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="224.5" y="133.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6d28d9" font-weight="600" text-anchor="middle">packet type</text>
+  <text x="224.5" y="148.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">0xff2ff2ce</text>
+  <rect x="302.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="317.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="335.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="350.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="368.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="383.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="401.0" y="86.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="416.0" y="103.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="304.0" y1="117.0" x2="429.0" y2="117.0" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="366.5" y="133.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#9ca3af" font-weight="600" text-anchor="middle">0</text>
+  <text x="30.0" y="183.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6b7280" font-weight="600" text-anchor="start">record</text>
+  <text x="148.0" y="183.0" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#9ca3af" font-weight="normal" text-anchor="end" xml:space="preserve">0008</text>
+  <rect x="160.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="175.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">02</text>
+  <rect x="193.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="208.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="162.0" y1="197.0" x2="221.0" y2="197.0" stroke="#7e22ce" stroke-width="1.5"/>
+  <text x="191.5" y="213.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#7e22ce" font-weight="600" text-anchor="middle">type 2</text>
+  <rect x="236.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="251.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">0c</text>
+  <rect x="269.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="284.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="238.0" y1="197.0" x2="297.0" y2="197.0" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="267.5" y="213.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#1d4ed8" font-weight="600" text-anchor="middle">len 12</text>
+  <rect x="312.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="327.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="345.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="360.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="378.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="393.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">01</text>
+  <rect x="411.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="426.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="444.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="459.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="477.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="492.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="510.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="525.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="543.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="558.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="576.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="591.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="609.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="624.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="642.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="657.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="675.0" y="166.0" width="30.0" height="26.0" rx="4" fill="#f9fafb" stroke="none" stroke-width="1.0"/>
+  <text x="690.0" y="183.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#9ca3af" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="314.0" y1="197.0" x2="703.0" y2="197.0" stroke="#9ca3af" stroke-width="1.5"/>
+  <text x="508.5" y="213.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#9ca3af" font-weight="600" text-anchor="middle">meaning unknown</text>
+  <text x="30.0" y="248.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6b7280" font-weight="600" text-anchor="start">record</text>
+  <text x="148.0" y="248.0" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#9ca3af" font-weight="normal" text-anchor="end" xml:space="preserve">0018</text>
+  <rect x="160.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="175.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">02</text>
+  <rect x="193.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="208.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="162.0" y1="262.0" x2="221.0" y2="262.0" stroke="#7e22ce" stroke-width="1.5"/>
+  <text x="191.5" y="278.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#7e22ce" font-weight="600" text-anchor="middle">type 2</text>
+  <rect x="236.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="251.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">08</text>
+  <rect x="269.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="284.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="238.0" y1="262.0" x2="297.0" y2="262.0" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="267.5" y="278.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#1d4ed8" font-weight="600" text-anchor="middle">len 8</text>
+  <rect x="312.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="327.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">01</text>
+  <rect x="345.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="360.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="378.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="393.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="411.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="426.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="314.0" y1="262.0" x2="439.0" y2="262.0" stroke="#047857" stroke-width="1.5"/>
+  <text x="376.5" y="278.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#047857" font-weight="600" text-anchor="middle">channel</text>
+  <text x="376.5" y="293.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">0x01 mv</text>
+  <rect x="454.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="469.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">75</text>
+  <rect x="487.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="502.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">c2</text>
+  <rect x="520.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="535.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">8c</text>
+  <rect x="553.0" y="231.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="568.0" y="248.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">3b</text>
+  <line x1="456.0" y1="262.0" x2="581.0" y2="262.0" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="518.5" y="278.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#0f766e" font-weight="600" text-anchor="middle">f32 value</text>
+  <text x="518.5" y="293.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">4.30 mV</text>
+  <text x="30.0" y="328.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6b7280" font-weight="600" text-anchor="start">record</text>
+  <text x="148.0" y="328.0" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#9ca3af" font-weight="normal" text-anchor="end" xml:space="preserve">0024</text>
+  <rect x="160.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="175.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">02</text>
+  <rect x="193.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="208.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="162.0" y1="342.0" x2="221.0" y2="342.0" stroke="#7e22ce" stroke-width="1.5"/>
+  <text x="191.5" y="358.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#7e22ce" font-weight="600" text-anchor="middle">type 2</text>
+  <rect x="236.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="251.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">08</text>
+  <rect x="269.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="284.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="238.0" y1="342.0" x2="297.0" y2="342.0" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="267.5" y="358.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#1d4ed8" font-weight="600" text-anchor="middle">len 8</text>
+  <rect x="312.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="327.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="345.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="360.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="378.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="393.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="411.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="426.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="314.0" y1="342.0" x2="439.0" y2="342.0" stroke="#047857" stroke-width="1.5"/>
+  <text x="376.5" y="358.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#047857" font-weight="600" text-anchor="middle">channel</text>
+  <text x="376.5" y="373.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">0x00 mc</text>
+  <rect x="454.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="469.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">f2</text>
+  <rect x="487.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="502.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">c5</text>
+  <rect x="520.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="535.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">f6</text>
+  <rect x="553.0" y="311.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="568.0" y="328.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">b3</text>
+  <line x1="456.0" y1="342.0" x2="581.0" y2="342.0" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="518.5" y="358.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#0f766e" font-weight="600" text-anchor="middle">f32 value</text>
+  <text x="518.5" y="373.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">-114.91 nA</text>
+  <text x="30.0" y="408.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6b7280" font-weight="600" text-anchor="start">record</text>
+  <text x="148.0" y="408.0" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#9ca3af" font-weight="normal" text-anchor="end" xml:space="preserve">0030</text>
+  <rect x="160.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="175.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">02</text>
+  <rect x="193.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="208.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="162.0" y1="422.0" x2="221.0" y2="422.0" stroke="#7e22ce" stroke-width="1.5"/>
+  <text x="191.5" y="438.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#7e22ce" font-weight="600" text-anchor="middle">type 2</text>
+  <rect x="236.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="251.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">08</text>
+  <rect x="269.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="284.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="238.0" y1="422.0" x2="297.0" y2="422.0" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="267.5" y="438.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#1d4ed8" font-weight="600" text-anchor="middle">len 8</text>
+  <rect x="312.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="327.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">06</text>
+  <rect x="345.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="360.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="378.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="393.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="411.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="426.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="314.0" y1="422.0" x2="439.0" y2="422.0" stroke="#047857" stroke-width="1.5"/>
+  <text x="376.5" y="438.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#047857" font-weight="600" text-anchor="middle">channel</text>
+  <text x="376.5" y="453.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">0x06 mp</text>
+  <rect x="454.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="469.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">f5</text>
+  <rect x="487.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="502.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">c9</text>
+  <rect x="520.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="535.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">07</text>
+  <rect x="553.0" y="391.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="568.0" y="408.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">b0</text>
+  <line x1="456.0" y1="422.0" x2="581.0" y2="422.0" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="518.5" y="438.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#0f766e" font-weight="600" text-anchor="middle">f32 value</text>
+  <text x="518.5" y="453.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">-0.49 nW</text>
+  <text x="30.0" y="488.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6b7280" font-weight="600" text-anchor="start">record</text>
+  <text x="148.0" y="488.0" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#9ca3af" font-weight="normal" text-anchor="end" xml:space="preserve">003c</text>
+  <rect x="160.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="175.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">02</text>
+  <rect x="193.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="208.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="162.0" y1="502.0" x2="221.0" y2="502.0" stroke="#7e22ce" stroke-width="1.5"/>
+  <text x="191.5" y="518.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#7e22ce" font-weight="600" text-anchor="middle">type 2</text>
+  <rect x="236.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="251.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">08</text>
+  <rect x="269.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="284.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="238.0" y1="502.0" x2="297.0" y2="502.0" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="267.5" y="518.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#1d4ed8" font-weight="600" text-anchor="middle">len 8</text>
+  <rect x="312.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="327.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">10</text>
+  <rect x="345.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="360.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="378.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="393.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="411.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="426.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="314.0" y1="502.0" x2="439.0" y2="502.0" stroke="#047857" stroke-width="1.5"/>
+  <text x="376.5" y="518.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#047857" font-weight="600" text-anchor="middle">channel</text>
+  <text x="376.5" y="533.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">0x10 vb</text>
+  <rect x="454.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="469.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">6b</text>
+  <rect x="487.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="502.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">6f</text>
+  <rect x="520.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="535.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">9f</text>
+  <rect x="553.0" y="471.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="568.0" y="488.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">40</text>
+  <line x1="456.0" y1="502.0" x2="581.0" y2="502.0" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="518.5" y="518.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#0f766e" font-weight="600" text-anchor="middle">f32 value</text>
+  <text x="518.5" y="533.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">4.98 V</text>
+  <text x="30.0" y="568.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" fill="#6b7280" font-weight="600" text-anchor="start">record</text>
+  <text x="148.0" y="568.0" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#9ca3af" font-weight="normal" text-anchor="end" xml:space="preserve">0048</text>
+  <rect x="160.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="175.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">02</text>
+  <rect x="193.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#f3e8ff" stroke="none" stroke-width="1.0"/>
+  <text x="208.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#7e22ce" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="162.0" y1="582.0" x2="221.0" y2="582.0" stroke="#7e22ce" stroke-width="1.5"/>
+  <text x="191.5" y="598.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#7e22ce" font-weight="600" text-anchor="middle">type 2</text>
+  <rect x="236.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="251.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">08</text>
+  <rect x="269.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#dbeafe" stroke="none" stroke-width="1.0"/>
+  <text x="284.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#1d4ed8" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="238.0" y1="582.0" x2="297.0" y2="582.0" stroke="#1d4ed8" stroke-width="1.5"/>
+  <text x="267.5" y="598.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#1d4ed8" font-weight="600" text-anchor="middle">len 8</text>
+  <rect x="312.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="327.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">11</text>
+  <rect x="345.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="360.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="378.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="393.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <rect x="411.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#d1fae5" stroke="none" stroke-width="1.0"/>
+  <text x="426.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#047857" font-weight="600" text-anchor="middle" xml:space="preserve">00</text>
+  <line x1="314.0" y1="582.0" x2="439.0" y2="582.0" stroke="#047857" stroke-width="1.5"/>
+  <text x="376.5" y="598.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#047857" font-weight="600" text-anchor="middle">channel</text>
+  <text x="376.5" y="613.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">0x11 vj</text>
+  <rect x="454.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="469.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">7a</text>
+  <rect x="487.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="502.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">f0</text>
+  <rect x="520.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="535.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">98</text>
+  <rect x="553.0" y="551.0" width="30.0" height="26.0" rx="4" fill="#ccfbf1" stroke="none" stroke-width="1.0"/>
+  <text x="568.0" y="568.5" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" fill="#0f766e" font-weight="600" text-anchor="middle" xml:space="preserve">41</text>
+  <line x1="456.0" y1="582.0" x2="581.0" y2="582.0" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="518.5" y="598.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#0f766e" font-weight="600" text-anchor="middle">f32 value</text>
+  <text x="518.5" y="613.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#6b7280" font-weight="normal" text-anchor="middle">19.12 V</text>
+  <text x="30.0" y="631.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12.5" fill="#6b7280" font-weight="normal" text-anchor="start">Records are [u16 type][u16 length][body]. Type-2 records of length 8 hold [u32 channel][f32 value]; mv/mc/mp match the</text>
+  <text x="30.0" y="649.0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12.5" fill="#6b7280" font-weight="normal" text-anchor="start">concurrent measurement. vb (≈ 5 V) and vj (≈ 19 V) look like the USB and DC-jack supply monitors. The packet goes on with further records.</text>
+</svg>
